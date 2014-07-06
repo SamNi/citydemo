@@ -1,12 +1,27 @@
 #include "citydemo.h"
 #include <GLFW/glfw3.h>
+#pragma warning ( disable : 4100 )
+
+Renderer renderer;
+Scene scene;
 
 static void error_callback(int err, const char *descr) {
     fprintf(stderr, descr);
 }
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    if (key==GLFW_KEY_ESCAPE && action==GLFW_PRESS)
+    if (action!=GLFW_PRESS)
+        return;
+
+    switch(key) {
+    case GLFW_KEY_ESCAPE:
+    case GLFW_KEY_Q:
         glfwSetWindowShouldClose(window, GL_TRUE);
+        break;
+    }
+}
+
+static void size_callback(GLFWwindow *window, int width, int height) {
+    renderer.Reshape(width, height);
 }
 
 int main(int argc, char *argv[]) {
@@ -24,26 +39,12 @@ int main(int argc, char *argv[]) {
 
     glfwMakeContextCurrent(window);
     glfwSetKeyCallback(window, key_callback);
+    glfwSetWindowSizeCallback(window, size_callback);
 
-    glClearColor(.2,.2,.2,1.0);
-    Scene scene;
+    renderer.Init(1600, 900);
     while(!glfwWindowShouldClose(window)) {
-        int width, height;
-        float ratio;
-
-        glfwGetFramebufferSize(window, &width, &height);
-        ratio = width/(float)height;
-
-        glViewport(0,0,width,height);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        glOrtho(-ratio, ratio, -1.f, 1.f, 1.f, -1.f);
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-
-        scene.draw();
+        scene.step(3.0);
+        renderer.Render(scene);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

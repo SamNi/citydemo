@@ -1,27 +1,16 @@
 #include "Scene.h"
-#include <Windows.h>
-#include <GL/GL.h>
-#include <GL/GLU.h>
 
-const int nElems = 50000;
+const int nElems = 2500;
 
 Scene::Scene(void) {
     elements.reserve(nElems);
     for(int i=0;i<nElems;++i) {
-        Vec3 v(uniform(-1.f,1),uniform(-.5f,.5f),uniform(-1,1));
-        Real r = 1.0;
-        elements.push_back(Sphere(v, r));
+        Vec3 v(uniform(-1,1), uniform(-1,1), uniform(-1,1));
+        elements.push_back(Sphere(v, 1.0));
     }
 }
 
-void Scene::draw(void) const {
-    glPointSize(5.0f);
-
-    glBegin(GL_POINTS);
-    for(int i=0;i<elements.size();++i)
-        glVertex3f(elements[i].pos.x, elements[i].pos.y, elements[i].pos.z);
-    glEnd();
-}
-
-void Scene::step(void) {
+void Scene::step(Real dt) {
+    for (int i=0;i<elements.size();++i)
+        elements[i].pos = uniform(0.99,1.01)*elements[i].pos;
 }
