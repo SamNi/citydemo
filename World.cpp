@@ -1,4 +1,4 @@
-#include "Scene.h"
+#include "World.h"
 
 const int nElems = 2500;
 

@@ -1,7 +1,7 @@
 // Represents the state of the world. The M in MVC
 
-#ifndef _SCENE_H_
-#define _SCENE_H_
+#ifndef _WORLD_H_
+#define _WORLD_H_
 #include "essentials.h"
 
 struct Scene {
@@ -11,4 +11,4 @@ struct Scene {
     void step(Real dt);
 };
 
-#endif // ~_SCENE_H_
+#endif // ~_WORLD_H_

@@ -1,7 +1,7 @@
 #ifndef _RENDERER_H_
 #define _RENDERER_H_
 #include "essentials.h"
-#include "Scene.h"
+#include "World.h"
 
 struct Pix2 {
     uint16_t x, y;
