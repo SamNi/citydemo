@@ -3,7 +3,7 @@
 #pragma warning ( disable : 4100 )
 
 Renderer renderer;
-Scene scene;
+World scene;
 
 static void error_callback(int err, const char *descr) {
     fprintf(stderr, descr);

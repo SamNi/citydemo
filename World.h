@@ -4,10 +4,10 @@
 #define _WORLD_H_
 #include "essentials.h"
 
-struct Scene {
+struct World {
     std::vector<Sphere> elements;
 
-    Scene(void);
+    World(void);
     void step(Real dt);
 };
 

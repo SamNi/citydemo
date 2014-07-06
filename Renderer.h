@@ -23,7 +23,7 @@ struct Camera {
 struct Renderer {
     void Init(int w, int h);
     void Reshape(int w, int h);
-    void Render(const Scene& s);
+    void Render(const World& s);
 
     int width, height;
     bool fullscreen;

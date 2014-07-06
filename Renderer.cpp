@@ -17,7 +17,7 @@ void Renderer::Reshape(int w, int h) {
     height=h;
 }
 
-void Renderer::Render(const Scene& s) {
+void Renderer::Render(const World& s) {
     float ratio = width/(float)height;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
