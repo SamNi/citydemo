@@ -1,6 +1,9 @@
 #ifndef _GL_H_
 #define _GL_H_
 
+extern "C" {
+#include <GL/glew.h>
+}
 #ifdef _WIN32
 #include <Windows.h>
 #endif 
