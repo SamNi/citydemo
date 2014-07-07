@@ -35,7 +35,18 @@ GLuint ShaderProgram::loadShader(std::string path, GLuint shaderType) {
 }
 
 ShaderProgram::~ShaderProgram(void) {
-    /// ....
+    if (fragmentShaderID) {
+        glDeleteShader(fragmentShaderID);
+        fragmentShaderID = NULL;
+    }
+    if (vertexShaderID) {
+        glDeleteShader(vertexShaderID);
+        vertexShaderID = NULL;
+    }
+    if (programID) {
+        glDeleteShader(programID);
+        programID = NULL;
+    }
 }
 
 void ShaderProgram::Use(void) const {
