@@ -1,13 +1,12 @@
 #include "citydemo.h"
 #include "GL.H"
+#include "Shader.h"
 #include <GLFW/glfw3.h>
 
 #pragma warning ( disable : 4100 )
 
-// forward decls
-static char *readFile(char *fname);
-
-
+const char *fragShader = "fragment.glsl";
+const char *vertShader = "vertex.glsl";
 
 // GLFW callbacks
 static void error_callback(int err, const char *descr) {
@@ -27,69 +26,33 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 static void size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0,0,width,height);
 }
-GLuint vbo = 0;
-GLuint colors_vbo = 0;
-GLuint vao = 0;
-GLuint p = 0;
-static void setupShaders(const char *frag, const char *vert) {
-    GLuint f, v;
-    f = glCreateShader(GL_FRAGMENT_SHADER);
-    v = glCreateShader(GL_VERTEX_SHADER);
 
-    char *fragSrc = readFile("basic.frag");
-    char *vertSrc = readFile("basic.vert");
-    const char *ff = fragSrc;
-    const char *vv = vertSrc;
-
-    glShaderSource(f, 1, &ff, NULL);
-    glShaderSource(v, 1, &vv, NULL);
-    glCompileShader(f);
-    glCompileShader(v);
-    delete[] fragSrc;
-    delete[] vertSrc;
-
-    int params = -1;
-    glGetShaderiv(f, GL_COMPILE_STATUS, &params);
-    if(GL_TRUE!=params) {
-        const int bufSize = 16384;
-        static char tmp[bufSize];
-        GLsizei len;
-
-        glGetShaderInfoLog(f, bufSize-2, &len, tmp);
-        fprintf(stderr,"fragment\n");
-        fprintf(stderr, "%s\n", tmp);
-        glGetShaderInfoLog(v, bufSize-2, &len, tmp);
-        fprintf(stderr,"vertex\n");
-        fprintf(stderr, "%s\n", tmp);
+static void checkGL(void) {
+    GLuint err = glGetError();
+    if (GL_NO_ERROR!=err) {
+        fprintf(stderr, "%s\n", gluErrorString(err));
         exit(EXIT_FAILURE);
     }
-        
-
-    p = glCreateProgram();
-    glAttachShader(p, v);
-    glAttachShader(p, f);
-    glLinkProgram(p);
-
-    assert(GL_NO_ERROR==glGetError());
-    glUseProgram(p);
 }
 
-static void setupVerts() {
+static GLuint setupVerts() {
+    GLuint verts_vbo, colors_vbo, vao;
     static GLfloat points[] = {
-        -0.4, -1,
-        0.4, -1,
-        0.4, 1,
-        -0.4, 1
+        -1,-1,
+        +1,-1,
+        +1,+1,
+        -1,+1
     };
     static GLfloat colors[] = {
-        1,0,0,
-        0,1,0,
-        0,0,1,
-        .5,.5,.5
+        0,0,0,
+        .8,.2,.2,
+        1,1,1,
+        .2,.8,.8
     };
 
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    glGenBuffers(1, &verts_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, verts_vbo);
     glBufferData(GL_ARRAY_BUFFER, 8*sizeof(float), points, GL_STATIC_DRAW);
 
     glGenBuffers(1, &colors_vbo);
@@ -99,7 +62,7 @@ static void setupVerts() {
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, verts_vbo);
     glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,0,NULL);
 
     glBindBuffer(GL_ARRAY_BUFFER, colors_vbo);
@@ -107,26 +70,10 @@ static void setupVerts() {
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+
+    return vao;
 }
 
-static char *readFile(char *fname) {
-    FILE *fin;
-    size_t count;
-    char *ret;
-
-    fin = fopen(fname, "rb");
-    fseek(fin, 0, SEEK_END);
-    count = ftell(fin);
-    rewind(fin);
-    ret = new char[count+1];
-    if(count != fread(ret, sizeof(char), count, fin)) {
-        fprintf(stderr, "Error reading %s\n", fname);
-        delete[] ret;
-        return NULL;
-    }
-    ret[count]='\0';
-    return ret;
-}
 int main(int argc, char *argv[]) {
     GLFWwindow *window;
     GLenum err;
@@ -136,7 +83,12 @@ int main(int argc, char *argv[]) {
         glfwSetErrorCallback(error_callback);
         if (!glfwInit())
             exit(EXIT_FAILURE);
-        window = glfwCreateWindow(1600, 900, argv[0], NULL, NULL);
+        // not sure how to enforce 4.x compliance
+        //glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+        //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        window = glfwCreateWindow(800, 800, argv[0], NULL, NULL);
         if(!window) {
             glfwTerminate();
             exit(EXIT_FAILURE);
@@ -155,15 +107,24 @@ int main(int argc, char *argv[]) {
     }
 
     // shader boilerplate
-    setupShaders("basic.frag", "basic.vert");
-    setupVerts();
+    ShaderProgram prog(fragShader, vertShader);
+    GLuint vao = setupVerts();
+    fprintf(stdout, "%s\n%s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
 
     glClearColor(.2,.2,.2,1);
 
+    glm::mat4x4 transMat;
+    transMat = glm::translate(transMat, glm::vec3(-.35,0,0));
+    transMat = glm::rotate(transMat, (float)PI/6, glm::vec3(0,0,1));
+    transMat = glm::scale(transMat, glm::vec3(.1f,.1f,.1f));
+
+    glUseProgram(prog.getProgID());
+
+    GLuint location = glGetUniformLocation(prog.getProgID(), "transMat");
+    glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(transMat));
     while(!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-
-        glUseProgram(p);
+        prog.Use();
         glBindVertexArray(vao);
         glDrawArrays(GL_QUADS, 0, 4);
 

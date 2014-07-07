@@ -1,3 +1,4 @@
+/*
 #ifndef _RENDERER_H_
 #define _RENDERER_H_
 #include "essentials.h"
@@ -31,3 +32,4 @@ struct Renderer {
 };
 
 #endif // ~_RENDERER_H_
+*/

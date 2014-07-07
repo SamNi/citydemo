@@ -24,6 +24,12 @@
     <ClCompile Include="World.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="essentials.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="essentials.h">
@@ -41,12 +47,15 @@
     <ClInclude Include="World.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="basic.frag">
+    <None Include="fragment.glsl">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="basic.vert">
+    <None Include="vertex.glsl">
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>

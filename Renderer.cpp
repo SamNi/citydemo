@@ -1,3 +1,4 @@
+/*
 #include "Renderer.h"
 #include "GL.H"
 
@@ -38,3 +39,5 @@ void Renderer::Render(const World& s) {
         glVertex3d(s.elements[i].pos.x, s.elements[i].pos.y, s.elements[i].pos.z);
     glEnd();
 }
+
+*/
