@@ -10,8 +10,6 @@ struct ShaderProgram {
     GLuint getProgID(void) const;
 
 private:
-    GLuint loadShader(std::string path, GLuint shaderType);
-
     GLuint programID;
     GLuint vertexShaderID;
     GLuint fragmentShaderID;

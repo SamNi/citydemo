@@ -118,13 +118,12 @@ int main(int argc, char *argv[]) {
     transMat = glm::rotate(transMat, (float)PI/6, glm::vec3(0,0,1));
     transMat = glm::scale(transMat, glm::vec3(.1f,.1f,.1f));
 
-    glUseProgram(prog.getProgID());
 
+    prog.Use();
     GLuint location = glGetUniformLocation(prog.getProgID(), "transMat");
     glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(transMat));
     while(!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-        prog.Use();
         glBindVertexArray(vao);
         glDrawArrays(GL_QUADS, 0, 4);
 

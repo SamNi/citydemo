@@ -1,15 +1,6 @@
 #include "Shader.h"
 
-ShaderProgram::ShaderProgram(std::string frag, std::string vert) {
-    fragmentShaderID = loadShader(frag, GL_FRAGMENT_SHADER);
-    vertexShaderID = loadShader(vert, GL_VERTEX_SHADER);
-    programID = glCreateProgram();
-    glAttachShader(programID, fragmentShaderID);
-    glAttachShader(programID, vertexShaderID);
-    glLinkProgram(programID);
-}
-
-GLuint ShaderProgram::loadShader(std::string path, GLuint shaderType) {
+static GLuint loadShader(std::string path, GLuint shaderType) {
     GLuint shaderHandle;
     const char *source;
 
@@ -32,6 +23,16 @@ GLuint ShaderProgram::loadShader(std::string path, GLuint shaderType) {
     }
 
     return shaderHandle;
+}
+
+
+ShaderProgram::ShaderProgram(std::string frag, std::string vert) {
+    fragmentShaderID = loadShader(frag, GL_FRAGMENT_SHADER);
+    vertexShaderID = loadShader(vert, GL_VERTEX_SHADER);
+    programID = glCreateProgram();
+    glAttachShader(programID, fragmentShaderID);
+    glAttachShader(programID, vertexShaderID);
+    glLinkProgram(programID);
 }
 
 ShaderProgram::~ShaderProgram(void) {
