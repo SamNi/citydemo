@@ -28,6 +28,7 @@ static void size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0,0,width,height);
 }
 GLuint vbo = 0;
+GLuint colors_vbo = 0;
 GLuint vao = 0;
 GLuint p = 0;
 static void setupShaders(const char *frag, const char *vert) {
@@ -80,16 +81,32 @@ static void setupVerts() {
         0.4, 1,
         -0.4, 1
     };
+    static GLfloat colors[] = {
+        1,0,0,
+        0,1,0,
+        0,0,1,
+        .5,.5,.5
+    };
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, 8*sizeof(float), points, GL_STATIC_DRAW);
 
+    glGenBuffers(1, &colors_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, colors_vbo);
+    glBufferData(GL_ARRAY_BUFFER, 12*sizeof(float), colors, GL_STATIC_DRAW);
+
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
-    glEnableVertexAttribArray(0);
+
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,0,NULL);
+
+    glBindBuffer(GL_ARRAY_BUFFER, colors_vbo);
+    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,0,NULL);
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
 }
 
 static char *readFile(char *fname) {
