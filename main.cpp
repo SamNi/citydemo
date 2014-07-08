@@ -36,7 +36,7 @@ static void checkGL(void) {
 }
 
 static GLuint setupVerts() {
-    GLuint verts_vbo, colors_vbo, vao;
+    GLuint verts_vbo, colors_vbo, tex_vbo, vao;
     static GLfloat points[] = {
         -1,-1,
         +1,-1,
@@ -49,6 +49,12 @@ static GLuint setupVerts() {
         1,1,1,
         .2,.8,.8
     };
+    static GLfloat texcoords[] = {
+        0, 0,
+        1, 0,
+        1, 1,
+        0, 1
+    };
 
 
     glGenBuffers(1, &verts_vbo);
@@ -59,6 +65,10 @@ static GLuint setupVerts() {
     glBindBuffer(GL_ARRAY_BUFFER, colors_vbo);
     glBufferData(GL_ARRAY_BUFFER, 12*sizeof(float), colors, GL_STATIC_DRAW);
 
+    glGenBuffers(1, &tex_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, tex_vbo);
+    glBufferData(GL_ARRAY_BUFFER, 8*sizeof(float), texcoords, GL_STATIC_DRAW);
+
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
@@ -68,8 +78,12 @@ static GLuint setupVerts() {
     glBindBuffer(GL_ARRAY_BUFFER, colors_vbo);
     glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,0,NULL);
 
+    glBindBuffer(GL_ARRAY_BUFFER, tex_vbo);
+    glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,0,NULL);
+
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
 
     return vao;
 }
@@ -108,20 +122,45 @@ int main(int argc, char *argv[]) {
 
     // shader boilerplate
     ShaderProgram prog(fragShader, vertShader);
+    checkGL();
     GLuint vao = setupVerts();
     fprintf(stdout, "%s\n%s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
+
 
     glClearColor(.2,.2,.2,1);
 
     glm::mat4x4 transMat;
-    transMat = glm::translate(transMat, glm::vec3(-.35,0,0));
-    transMat = glm::rotate(transMat, (float)PI/6, glm::vec3(0,0,1));
-    transMat = glm::scale(transMat, glm::vec3(.1f,.1f,.1f));
+    //transMat = glm::translate(transMat, glm::vec3(-.35,0,0));
+    //transMat = glm::rotate(transMat, (float)PI/6, glm::vec3(0,0,1));
+    //transMat = glm::scale(transMat, glm::vec3(.5f,.5f,.5f));
+
+    //glm::mat4x4::
+
+    const int W = 16;
+    const int H = 32;
+    const int PIX = W*H;
+    uint8_t pixels[PIX*3];
+    for (int i = 0;i < PIX*3;i+=3) {
+        uint8_t c = (uint8_t)uniform(0,255);
+        pixels[i] = pixels[i+1] = pixels[i+2] = c;
+    }
+
+    GLuint texID;
+    glGenTextures(1, &texID);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, 3, W, H, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 
 
     prog.Use();
+
     GLuint location = glGetUniformLocation(prog.getProgID(), "transMat");
     glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(transMat));
+    glUniform1i(glGetUniformLocation(prog.getProgID(), "texture"), texID);
+    glUniform1i(glGetUniformLocation(prog.getProgID(), "Diffuse"), 0);
+    float angle = 0;
     while(!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         glBindVertexArray(vao);
@@ -129,6 +168,9 @@ int main(int argc, char *argv[]) {
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        angle += 0.05f;
+        glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(glm::rotate(glm::mat4x4(), angle, glm::vec3(0,0,1))));
     }
     glfwDestroyWindow(window);
     glfwTerminate();

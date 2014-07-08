@@ -13,12 +13,12 @@ static GLuint loadShader(std::string path, GLuint shaderType) {
     int params = -1;
     glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &params);
     if(GL_TRUE!=params) {
-        const int bufSize = 16384;
-        static char tmp[bufSize];
+        static char tmp[GL_INFO_LOG_LENGTH];
         GLsizei len;
 
-        glGetShaderInfoLog(shaderHandle, bufSize-2, &len, tmp);
-        fprintf(stderr, "%s\n%s\n", path, tmp);
+        glGetShaderInfoLog(shaderHandle, GL_INFO_LOG_LENGTH-1, &len, tmp);
+        tmp[len]='\0';
+        fprintf(stderr, "%s\n%s\n", path.c_str(), tmp);
         exit(EXIT_FAILURE);
     }
 
