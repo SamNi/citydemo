@@ -1,6 +1,7 @@
 #include "citydemo.h"
 #include "GL.H"
 #include "Shader.h"
+#include "Texture.h"
 #include <GLFW/glfw3.h>
 
 #pragma warning ( disable : 4100 )
@@ -38,21 +39,21 @@ static void checkGL(void) {
 static GLuint setupVerts() {
     GLuint verts_vbo, colors_vbo, tex_vbo, vao;
     static GLfloat points[] = {
-        -1,-1,
-        +1,-1,
-        +1,+1,
-        -1,+1
+        -1,-1,      // lower left
+        +1,-1,      // lower right
+        +1,+1,      // upper right
+        -1,+1       // upper left
     };
     static GLfloat colors[] = {
-        0,0,0,
-        .8,.2,.2,
-        1,1,1,
-        .2,.8,.8
+        1,0,0,      // red
+        0,1,0,      // green
+        0,0,1,      // blue
+        0,1,1       // cyan
     };
     static GLfloat texcoords[] = {
-        0, 0,
-        1, 0,
-        1, 1,
+        0, 0,       // lower left corner of texmap
+        1, 0,       // lower right corner
+        1, 1,       // yadda...
         0, 1
     };
 
@@ -135,30 +136,26 @@ int main(int argc, char *argv[]) {
     //transMat = glm::scale(transMat, glm::vec3(.5f,.5f,.5f));
 
     //glm::mat4x4::
+   
 
-    const int W = 16;
-    const int H = 32;
-    const int PIX = W*H;
-    uint8_t pixels[PIX*3];
-    for (int i = 0;i < PIX*3;i+=3) {
-        uint8_t c = (uint8_t)uniform(0,255);
-        pixels[i] = pixels[i+1] = pixels[i+2] = c;
-    }
+    Texture t(16, 8);
+    t.Use();
 
-    GLuint texID;
-    glGenTextures(1, &texID);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage2D(GL_TEXTURE_2D, 0, 3, W, H, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
-
+    // framebuffer
+    /*
+    GLuint fbID;
+    glGenFramebuffers(1, &fbID);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbID);
+    glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texID, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    */
 
     prog.Use();
 
+
     GLuint location = glGetUniformLocation(prog.getProgID(), "transMat");
     glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(transMat));
-    glUniform1i(glGetUniformLocation(prog.getProgID(), "texture"), texID);
+    glUniform1i(glGetUniformLocation(prog.getProgID(), "texture"), t.getTexID());
     glUniform1i(glGetUniformLocation(prog.getProgID(), "Diffuse"), 0);
     float angle = 0;
     while(!glfwWindowShouldClose(window)) {
@@ -169,8 +166,7 @@ int main(int argc, char *argv[]) {
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        angle += 0.05f;
-        glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(glm::rotate(glm::mat4x4(), angle, glm::vec3(0,0,1))));
+        //glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(glm::rotate(glm::mat4x4(), angle, glm::vec3(0,0,1))));
     }
     glfwDestroyWindow(window);
     glfwTerminate();
