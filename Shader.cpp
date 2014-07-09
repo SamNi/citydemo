@@ -1,5 +1,10 @@
 #include "Shader.h"
 
+#define SHADER_DIR                  "shaders"
+const char *names[] = { 
+    "diffuse",
+    "white",
+    NULL };
 
 struct ShaderProgram {
     ShaderProgram(std::string frag, std::string vertex);
@@ -79,6 +84,21 @@ void ShaderManager::load(std::string name, std::string frag, std::string vertex)
     progs[name] = p;
 }
 
+void ShaderManager::load(void) {
+    const char **name;
+    int count = 0;
+
+    for (name = names;*name;++name,++count) {
+        fprintf(stderr,"%s\n", *name);
+
+        std::string path = std::string(SHADER_DIR) + std::string(PATH_SEP) + std::string(*name);
+        std::string fragPath = path + std::string(".frag");
+        std::string vertPath = path + std::string(".vert");
+        load(std::string(*name), fragPath, vertPath);
+    }
+    fprintf(stderr,"successfully compiled, linked %d shader program(s)\n", count);
+}
+
 void ShaderManager::use(std::string name) {
     assert(progs.find(name) != progs.end());
 
@@ -87,7 +107,6 @@ void ShaderManager::use(std::string name) {
 
 GLuint ShaderManager::getProgID(const std::string& name) {
     assert(progs.find(name) != progs.end());
-    //return (progs.find(name)->second)->getProgID();
     return progs[name]->getProgID();
 }
 

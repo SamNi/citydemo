@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
     // shader boilerplate
     ShaderManager shMan;
     
-    shMan.load(std::string("default"), fragShader, vertShader);
+    shMan.load();
 
     checkGL();
     fprintf(stdout, "%s\n%s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
@@ -122,9 +122,9 @@ int main(int argc, char *argv[]) {
 
     Texture t(32, 256);
     t.Use();
-    shMan.use("default");
+    shMan.use("diffuse");
 
-    GLuint location = shMan.getProgID("default");
+    GLuint location = shMan.getProgID("diffuse");
 
     glUniformMatrix4fv(glGetUniformLocation(location, "modelView"), 1, GL_FALSE, glm::value_ptr(modelView));
     glUniformMatrix4fv(glGetUniformLocation(location, "projection"), 1, GL_FALSE, glm::value_ptr(projection));

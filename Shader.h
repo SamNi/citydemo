@@ -7,6 +7,7 @@ struct ShaderProgram;
 
 struct ShaderManager {
     void load(std::string name, std::string frag, std::string vertex);
+    void load(void);
     void use(std::string name);
     GLuint getProgID(const std::string& name);
     ~ShaderManager(void);

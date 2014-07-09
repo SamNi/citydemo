@@ -6,6 +6,8 @@ char *readFile(const char *fname) {
     char *ret;
 
     fin = fopen(fname, "rb");
+    if (!fin)
+        return NULL;
     fseek(fin, 0, SEEK_END);
     count = ftell(fin);
     rewind(fin);
