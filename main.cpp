@@ -36,58 +36,42 @@ static void checkGL(void) {
     }
 }
 
-static GLuint setupVerts() {
-    GLuint verts_vbo, colors_vbo, tex_vbo, vao;
-    static GLfloat points[] = {
-        -1,-1,      // lower left
-        +1,-1,      // lower right
-        +1,+1,      // upper right
-        -1,+1       // upper left
-    };
-    static GLfloat colors[] = {
-        1,0,0,      // red
-        0,1,0,      // green
-        0,0,1,      // blue
-        0,1,1       // cyan
-    };
-    static GLfloat texcoords[] = {
-        0, 0,       // lower left corner of texmap
-        1, 0,       // lower right corner
-        1, 1,       // yadda...
-        0, 1
-    };
+struct Thing {
+    glm::vec3 center;
 
+    Thing() {
+        load();
+    }
+    void draw() const {
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, nTris);
+    }
 
-    glGenBuffers(1, &verts_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, verts_vbo);
-    glBufferData(GL_ARRAY_BUFFER, 8*sizeof(float), points, GL_STATIC_DRAW);
+private:
+    GLuint verts_vbo, vao;
+    int nTris;
+    void load() {
+        nTris = 1024;
+        GLfloat *vtxData = new GLfloat[nTris*3];
+        for(int i = 0;i < nTris*3;++i)
+            vtxData[i] = uniform(-1.0f,1.0f);
 
-    glGenBuffers(1, &colors_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, colors_vbo);
-    glBufferData(GL_ARRAY_BUFFER, 12*sizeof(float), colors, GL_STATIC_DRAW);
+        glGenBuffers(1, &verts_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, verts_vbo);
+        glBufferData(GL_ARRAY_BUFFER, 3*nTris, vtxData, GL_STATIC_DRAW);
+        
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
 
-    glGenBuffers(1, &tex_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, tex_vbo);
-    glBufferData(GL_ARRAY_BUFFER, 8*sizeof(float), texcoords, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, verts_vbo);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+        glEnableVertexAttribArray(0);
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+        checkGL();
 
-    glBindBuffer(GL_ARRAY_BUFFER, verts_vbo);
-    glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,0,NULL);
-
-    glBindBuffer(GL_ARRAY_BUFFER, colors_vbo);
-    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,0,NULL);
-
-    glBindBuffer(GL_ARRAY_BUFFER, tex_vbo);
-    glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,0,NULL);
-
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
-
-    return vao;
-}
+        delete[] vtxData;
+    }
+};
 
 int main(int argc, char *argv[]) {
     GLFWwindow *window;
@@ -122,51 +106,42 @@ int main(int argc, char *argv[]) {
     }
 
     // shader boilerplate
-    ShaderProgram prog(fragShader, vertShader);
+    ShaderManager shMan;
+    
+    shMan.load(std::string("default"), fragShader, vertShader);
+
     checkGL();
-    GLuint vao = setupVerts();
     fprintf(stdout, "%s\n%s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
 
 
     glClearColor(.2,.2,.2,1);
 
-    glm::mat4x4 transMat;
-    //transMat = glm::translate(transMat, glm::vec3(-.35,0,0));
-    //transMat = glm::rotate(transMat, (float)PI/6, glm::vec3(0,0,1));
-    //transMat = glm::scale(transMat, glm::vec3(.5f,.5f,.5f));
-
-    //glm::mat4x4::
+    glm::mat4x4 modelView = glm::lookAt(glm::vec3(0,3,-7), glm::vec3(0,0,0), glm::vec3(0,1,0));
+    glm::mat4x4 projection = glm::perspective(glm::pi<float>()/3.0f, 1.0f, 0.01f, 500.0f);
    
 
-    Texture t(16, 8);
+    Texture t(32, 256);
     t.Use();
+    shMan.use("default");
 
-    // framebuffer
-    /*
-    GLuint fbID;
-    glGenFramebuffers(1, &fbID);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbID);
-    glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texID, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    */
+    GLuint location = shMan.getProgID("default");
 
-    prog.Use();
-
-
-    GLuint location = glGetUniformLocation(prog.getProgID(), "transMat");
-    glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(transMat));
-    glUniform1i(glGetUniformLocation(prog.getProgID(), "texture"), t.getTexID());
-    glUniform1i(glGetUniformLocation(prog.getProgID(), "Diffuse"), 0);
+    glUniformMatrix4fv(glGetUniformLocation(location, "modelView"), 1, GL_FALSE, glm::value_ptr(modelView));
+    glUniformMatrix4fv(glGetUniformLocation(location, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+    glUniform1i(glGetUniformLocation(location, "texture"), t.getTexID());
+    glUniform1i(glGetUniformLocation(location, "Diffuse"), 0);
     float angle = 0;
+    Thing th;
     while(!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-        glBindVertexArray(vao);
-        glDrawArrays(GL_QUADS, 0, 4);
+
+        th.draw();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        //glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(glm::rotate(glm::mat4x4(), angle, glm::vec3(0,0,1))));
+        glUniformMatrix4fv(glGetUniformLocation(location, "modelView"), 1, GL_FALSE, glm::value_ptr(glm::rotate(modelView, angle, glm::vec3(0,1,0))));
+        angle += 0.009f;
     }
     glfwDestroyWindow(window);
     glfwTerminate();

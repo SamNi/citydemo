@@ -3,17 +3,15 @@
 #include "essentials.h"
 #include "GL.H"
 
-struct ShaderProgram {
-    ShaderProgram(std::string frag, std::string vertex);
-    ~ShaderProgram(void);
-    void Use(void) const;
-    GLuint getProgID(void) const;
+struct ShaderProgram;
 
-private:
-    GLuint programID;
-    GLuint vertexShaderID;
-    GLuint fragmentShaderID;
-    std::string name;
+struct ShaderManager {
+    void load(std::string name, std::string frag, std::string vertex);
+    void use(std::string name);
+    GLuint getProgID(const std::string& name);
+    ~ShaderManager(void);
+
+    std::map<std::string, ShaderProgram*> progs;
 };
 
 #endif // ~_SHADER_H_

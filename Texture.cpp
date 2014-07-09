@@ -6,11 +6,11 @@ Texture::Texture(int w, int h) : width(w),height(h) {
     pixels = new uint8_t[w*h*3];
     
     for (int i = 0;i < w*h;++i) {
-        Real mid = 255*(i / ((Real)w*h));
-
-        pixels[3*i+0] = mid;
-        pixels[3*i+1] = 0;
-        pixels[3*i+2] = 255 - mid;
+        int factor = glm::max(w,h) / 6;
+        uint8_t c = (uint8_t)(255.0/factor)*(i%factor);
+        pixels[3*i+0] = 255-c;
+        pixels[3*i+1] = 255-c;
+        pixels[3*i+2] = 255-c;
     }
 
     glGenTextures(1, &texID);
@@ -24,6 +24,7 @@ Texture::Texture(int w, int h) : width(w),height(h) {
 Texture::~Texture(void) {
     if (pixels)
         delete[] pixels;
+    glDeleteTextures(1, &texID);
 }
 
 void Texture::Use(void) const {

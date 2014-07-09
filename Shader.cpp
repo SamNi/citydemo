@@ -1,5 +1,21 @@
 #include "Shader.h"
 
+
+struct ShaderProgram {
+    ShaderProgram(std::string frag, std::string vertex);
+    ~ShaderProgram(void);
+    void Use(void) const;
+    GLuint getProgID(void) const;
+
+private:
+    GLuint programID;
+    GLuint vertexShaderID;
+    GLuint fragmentShaderID;
+    std::string name;
+};
+
+
+
 static GLuint loadShader(std::string path, GLuint shaderType) {
     GLuint shaderHandle;
     const char *source;
@@ -55,3 +71,29 @@ void ShaderProgram::Use(void) const {
 }
 
 GLuint ShaderProgram::getProgID(void) const { return programID; }
+
+void ShaderManager::load(std::string name, std::string frag, std::string vertex) {
+    assert(progs.find(name) == progs.end());
+
+    ShaderProgram *p = new ShaderProgram(frag, vertex);
+    progs[name] = p;
+}
+
+void ShaderManager::use(std::string name) {
+    assert(progs.find(name) != progs.end());
+
+    progs[name]->Use();
+}
+
+GLuint ShaderManager::getProgID(const std::string& name) {
+    assert(progs.find(name) != progs.end());
+    //return (progs.find(name)->second)->getProgID();
+    return progs[name]->getProgID();
+}
+
+ShaderManager::~ShaderManager(void) {
+    std::map<std::string, ShaderProgram*>::iterator it;
+    for (it = progs.begin();it != progs.end();++it) {
+        delete (it->second);
+    }
+}
