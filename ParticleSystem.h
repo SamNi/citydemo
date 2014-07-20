@@ -10,10 +10,13 @@ struct ParticleSystem {
     void Step(void);
     void Draw(void);
 
+private:
+    void LoadComputeShader(const char *fname, GLuint& progID, GLuint& shadID);
+
 
     GLuint ssbo_points, vao;
     GLuint initProgramID, initShaderID, stepProgramID, stepShaderID;
-    int nParticles;
+    int64_t nParticles;
 };
 
 #endif // ~_PARTICLESYSTEM_H_

@@ -9,11 +9,10 @@
 
 #pragma warning ( disable : 4100 )
 
-#define WIDTH               (320)
-#define HEIGHT              (240)
+#define WIDTH               (1600)
+#define HEIGHT              (900)
 #define FOV                 (60)
-#define NUM_TRIANGLES       (250)
-
+#define NUM_TRIANGLES       (50)
 
 // GLFW callbacks
 static void error_callback(int err, const char *descr) {
@@ -75,10 +74,10 @@ int main(int argc, char *argv[]) {
     fprintf(stdout, "%s\n%s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
 
     glClearColor(.2f,.2f,.2f,1.0f);
-    //glEnable(GL_DEPTH_TEST);
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
+    //glDisable(GL_DEPTH_TEST);
+    //glEnable(GL_BLEND);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     GLint numUnits;
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &numUnits);
@@ -126,7 +125,7 @@ int main(int argc, char *argv[]) {
 
     ShaderManager shMan;
     shMan.load();
-    shMan.use("white");
+    shMan.use("textured");
     checkGL();
 
     Texture textures[] = {
@@ -139,7 +138,7 @@ int main(int argc, char *argv[]) {
     const int nTextures = sizeof(textures)/sizeof(Texture);
     checkGL();
 
-    GLuint location = shMan.getProgID("white");
+    GLuint location = shMan.getProgID("textured");
 
     ParticleSystem ps;
     ps.Init(NUM_TRIANGLES*3);
@@ -204,20 +203,21 @@ int main(int argc, char *argv[]) {
 
         modelView = glm::lookAt(glm::vec3(0,1.5,2), glm::vec3(0,0,0), glm::vec3(0,1,0))*glm::rotate(rotAngle, glm::vec3(0,1,0));
 
+        glUseProgram(location);
         glUniform1f(glGetUniformLocation(location, "seed"), (seed+=1));
         glUniformMatrix4fv(glGetUniformLocation(location, "modelView"), 1, GL_FALSE, glm::value_ptr(modelView));
 
-        rotAngle += 0.04f;
+        rotAngle += 0.01f;
 
         // shake shake shake
         //glfwSetWindowPos(window, 75+rand()%100, 10+rand()%100);
 
-        //textures[int(rotAngle)%nTextures].Bind();
-        //glBindVertexArray(vao);
-        //glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+        textures[int(rotAngle)%nTextures].Bind();
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
         //checkGL();
         ps.Draw();
-        ps.Step();
+        //ps.Step();
 
         glfwSwapBuffers(window);
         glfwPollEvents();

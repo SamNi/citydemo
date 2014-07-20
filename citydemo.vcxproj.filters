@@ -71,5 +71,7 @@
     <None Include="shaders\textured.frag" />
     <None Include="shaders\textured.vert" />
     <None Include="example.compute" />
+    <None Include="InitParticle.compute" />
+    <None Include="StepParticle.compute" />
   </ItemGroup>
 </Project>
