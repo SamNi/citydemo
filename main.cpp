@@ -2,12 +2,18 @@
 #include "GL.H"
 #include "Shader.h"
 #include "Texture.h"
+#include "ParticleSystem.h"
+
+
 #include <GLFW/glfw3.h>
 
 #pragma warning ( disable : 4100 )
 
-const char *fragShader = "fragment.glsl";
-const char *vertShader = "vertex.glsl";
+#define WIDTH               (320)
+#define HEIGHT              (240)
+#define FOV                 (60)
+#define NUM_TRIANGLES       (250)
+
 
 // GLFW callbacks
 static void error_callback(int err, const char *descr) {
@@ -28,49 +34,10 @@ static void size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0,0,width,height);
 }
 
-static void checkGL(void) {
-    GLuint err = glGetError();
-    if (GL_NO_ERROR!=err) {
-        fprintf(stderr, "%s\n", gluErrorString(err));
-        exit(EXIT_FAILURE);
-    }
-}
-
-struct Thing {
-    glm::vec3 center;
-
-    Thing() {
-        load();
-    }
-    void draw() const {
-        glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, nTris);
-    }
-
-private:
-    GLuint verts_vbo, vao;
-    int nTris;
-    void load() {
-        nTris = 1024;
-        GLfloat *vtxData = new GLfloat[nTris*3];
-        for(int i = 0;i < nTris*3;++i)
-            vtxData[i] = uniform(-1.0f,1.0f);
-
-        glGenBuffers(1, &verts_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, verts_vbo);
-        glBufferData(GL_ARRAY_BUFFER, 3*nTris, vtxData, GL_STATIC_DRAW);
-        
-        glGenVertexArrays(1, &vao);
-        glBindVertexArray(vao);
-
-        glBindBuffer(GL_ARRAY_BUFFER, verts_vbo);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-        glEnableVertexAttribArray(0);
-
-        checkGL();
-
-        delete[] vtxData;
-    }
+struct MyType {
+    int value;
+    MyType(int x) : value(x) { }
+    ~MyType(void) { printf("destroyed\n"); }
 };
 
 int main(int argc, char *argv[]) {
@@ -87,11 +54,12 @@ int main(int argc, char *argv[]) {
         //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
         //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        window = glfwCreateWindow(800, 800, argv[0], NULL, NULL);
+        window = glfwCreateWindow(WIDTH, HEIGHT, argv[0], NULL, NULL);
         if(!window) {
             glfwTerminate();
             exit(EXIT_FAILURE);
         }
+        glfwSetWindowPos(window, 100, 50);
         glfwMakeContextCurrent(window);
         glfwSetKeyCallback(window, key_callback);
         glfwSetWindowSizeCallback(window, size_callback);
@@ -104,44 +72,156 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "%s\n", glewGetErrorString(err));
         exit(EXIT_FAILURE);
     }
-
-    // shader boilerplate
-    ShaderManager shMan;
-    
-    shMan.load();
-
-    checkGL();
     fprintf(stdout, "%s\n%s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
 
+    glClearColor(.2f,.2f,.2f,1.0f);
+    //glEnable(GL_DEPTH_TEST);
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glClearColor(.2,.2,.2,1);
+    GLint numUnits;
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &numUnits);
+    printf("%d texture image units\n", numUnits);
 
-    glm::mat4x4 modelView = glm::lookAt(glm::vec3(0,3,-7), glm::vec3(0,0,0), glm::vec3(0,1,0));
-    glm::mat4x4 projection = glm::perspective(glm::pi<float>()/3.0f, 1.0f, 0.01f, 500.0f);
+    GLuint vbo_position, vbo_texCoords, vao;
+    {
+        static GLfloat points[] = {
+            // ccw order
+            -1.0f,+1.0f,0.0f, // upper left
+            -1.0f,-1.0f,0.0f, // lower left
+            +1.0f,-1.0f,0.0f, // lower right
+            +1.0f,+1.0f,0.0f, // upper right
+        };
+        static GLfloat texCoords[] = {
+            0,0,        // upper left
+            0,1,        // lower left
+            1,1,        // lower right
+            1,0,        // upper right
+        };
+        glGenBuffers(1, &vbo_position);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
+        glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), points, GL_STATIC_DRAW);
+
+        glGenBuffers(1, &vbo_texCoords);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
+        glBufferData(GL_ARRAY_BUFFER, 2*4*sizeof(GLfloat), texCoords, GL_STATIC_DRAW);
+
+        checkGL();
+    }
+    {
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_position);          // refer to the above VBO definition
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);          // refer to the above VBO definition
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        checkGL();
+    }
+
+    ShaderManager shMan;
+    shMan.load();
+    shMan.use("white");
+    checkGL();
+
+    Texture textures[] = {
+        Texture("kei.png"),
+        Texture("gradient.png"),
+        Texture("oreimo.png"),
+        Texture("doesnotexist.png"),
+        Texture("sarenna.png"),
+    };
+    const int nTextures = sizeof(textures)/sizeof(Texture);
+    checkGL();
+
+    GLuint location = shMan.getProgID("white");
+
+    ParticleSystem ps;
+    ps.Init(NUM_TRIANGLES*3);
+
+    // compute shader boilerplate
+    GLuint progHandle, cs;
+    GLint result;
+    const char *shadSrc;
+    const char *fname = "example.compute";
+
+    progHandle = glCreateProgram();
+    cs = glCreateShader(GL_COMPUTE_SHADER);
+    shadSrc = readFile(fname);
+    glShaderSource(cs, 1, &shadSrc, NULL);
+    glCompileShader(cs);
+    glGetShaderiv(cs, GL_COMPILE_STATUS, &result);
+    checkGL();
+
+    if (!result) {
+        static char tmp[GL_INFO_LOG_LENGTH];
+        GLsizei len;
+
+        glGetShaderInfoLog(cs, GL_INFO_LOG_LENGTH-1, &len, tmp);
+        tmp[len]='\0';
+        fprintf(stderr, "%s\n%s\n", fname, tmp);
+        exit(EXIT_FAILURE);
+    }
+
+    glAttachShader(progHandle, cs);
+    glLinkProgram(progHandle);
+    glGetProgramiv(progHandle, GL_LINK_STATUS, &result);
+
+    if (!result) {
+        static char tmp[GL_INFO_LOG_LENGTH];
+        GLsizei len;
+
+        glGetProgramInfoLog(progHandle, GL_INFO_LOG_LENGTH-1, &len, tmp);
+        tmp[len]='\0';
+        fprintf(stderr, "%s\n%s\n", fname, tmp);
+        exit(EXIT_FAILURE);
+    }
+    delete[] shadSrc;
+    checkGL();
+
+    
+    glUseProgram(progHandle);
+    // updateTex
+    glDispatchCompute(512/32, 512/32, 1);
+    checkGL();
+
+    glUseProgram(location);
+
+    glm::mat4x4 modelView;
+    //glm::mat4x4 projection = glm::ortho(-1.0f,1.0f,-1.0f,1.0f,0.01f,10.0f);
+    glm::mat4x4 projection = glm::perspective(glm::radians((float)FOV), (float)WIDTH/HEIGHT, 0.01f, 100.0f);
    
-
-    Texture t(32, 256);
-    t.Use();
-    shMan.use("diffuse");
-
-    GLuint location = shMan.getProgID("diffuse");
-
     glUniformMatrix4fv(glGetUniformLocation(location, "modelView"), 1, GL_FALSE, glm::value_ptr(modelView));
     glUniformMatrix4fv(glGetUniformLocation(location, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-    glUniform1i(glGetUniformLocation(location, "texture"), t.getTexID());
-    glUniform1i(glGetUniformLocation(location, "Diffuse"), 0);
-    float angle = 0;
-    Thing th;
+    static float seed, rotAngle = 0.0f;
     while(!glfwWindowShouldClose(window)) {
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        th.draw();
+        modelView = glm::lookAt(glm::vec3(0,1.5,2), glm::vec3(0,0,0), glm::vec3(0,1,0))*glm::rotate(rotAngle, glm::vec3(0,1,0));
+
+        glUniform1f(glGetUniformLocation(location, "seed"), (seed+=1));
+        glUniformMatrix4fv(glGetUniformLocation(location, "modelView"), 1, GL_FALSE, glm::value_ptr(modelView));
+
+        rotAngle += 0.04f;
+
+        // shake shake shake
+        //glfwSetWindowPos(window, 75+rand()%100, 10+rand()%100);
+
+        //textures[int(rotAngle)%nTextures].Bind();
+        //glBindVertexArray(vao);
+        //glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+        //checkGL();
+        ps.Draw();
+        ps.Step();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        glUniformMatrix4fv(glGetUniformLocation(location, "modelView"), 1, GL_FALSE, glm::value_ptr(glm::rotate(modelView, angle, glm::vec3(0,1,0))));
-        angle += 0.009f;
     }
     glfwDestroyWindow(window);
     glfwTerminate();

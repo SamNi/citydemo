@@ -4,20 +4,31 @@
 #include "GL.H"
 
 struct Texture {
+    Texture(void);
     Texture(int w, int h);
+    Texture(char *fname);
     ~Texture(void);
 
+    void Bind(void) const;
+    void Refresh(void);
 
     uint8_t *getPixels(void) const;
-    void Use(void) const;
 
     GLuint getTexID(void) const;
 
-
-private:
     int width, height;
     GLuint texID;
     uint8_t *pixels;
+
+private:
+    bool Alloc(int nbytes);
+    bool Alloc(int w, int h);
+    void DeAlloc(void);
+    void UpGL(GLuint fmt);
+    void MakeCheckerboard(void);
+};
+
+struct TextureManager {
 };
 
 #endif // ~_TEXTURE_H_

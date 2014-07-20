@@ -1,0 +1,35 @@
+#version 440 core
+
+uniform float roll;
+layout(rgba8) uniform image2D destTex;
+layout(local_size_x = 32, local_size_y = 32) in;
+
+float rand(vec2 co) {
+	return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453);
+}
+
+float unif(vec2 co, float a, float b) {
+	return a + (b-a)*rand(co);
+}
+
+void main() {
+	/*
+	ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
+	float localCoef = length(vec2(ivec2(gl_LocalInvocationID.xy)-8)/8.0);
+	float globalCoef = sin(float(gl_WorkGroupID.x+gl_WorkGroupID.y)*0.1 + roll)*0.5;
+	imageStore(destTex, storePos, vec4(1.0-globalCoef*localCoef, 0.0, 0.0, 0.0));*/
+	
+	ivec2 storePos;
+	float scaleFactor;
+	vec4 srcCol, destCol;
+
+
+	storePos = ivec2(gl_GlobalInvocationID.xy);
+	srcCol = imageLoad(destTex, storePos);
+	
+	float a = gl_GlobalInvocationID.x/256.0f;
+	destCol = vec4(srcCol.rgb, a);
+
+	imageStore(destTex, storePos, destCol);
+}
+

@@ -15,6 +15,7 @@
 #include <string>
 #include <set>
 #include <map>
+#include <memory>
 
 #define PI              (3.141592653589793238462643)
 
@@ -26,8 +27,9 @@
 
 // forward decls
 char *readFile(const char *fname);
+void checkGL(void);
 
-typedef double Real;
+typedef float Real;
 
 inline Real uniform(Real a, Real b) {
     assert(a <= b);

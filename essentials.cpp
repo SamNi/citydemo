@@ -1,4 +1,5 @@
 #include "essentials.h"
+#include "GL.h"
 
 char *readFile(const char *fname) {
     FILE *fin;
@@ -21,3 +22,10 @@ char *readFile(const char *fname) {
     return ret;
 }
 
+void checkGL(void) {
+    GLuint err = glGetError();
+    if (GL_NO_ERROR!=err) {
+        fprintf(stderr, "%s\n", gluErrorString(err));
+        exit(EXIT_FAILURE);
+    }
+}

@@ -4,19 +4,20 @@
 const char *names[] = { 
     "diffuse",
     "white",
+    "textured",
     NULL };
 
 struct ShaderProgram {
     ShaderProgram(std::string frag, std::string vertex);
     ~ShaderProgram(void);
-    void Use(void) const;
+    void Bind(void) const;
     GLuint getProgID(void) const;
 
 private:
     GLuint programID;
     GLuint vertexShaderID;
     GLuint fragmentShaderID;
-    std::string name;
+    GLuint computeShaderID;
 };
 
 
@@ -50,10 +51,14 @@ static GLuint loadShader(std::string path, GLuint shaderType) {
 ShaderProgram::ShaderProgram(std::string frag, std::string vert) {
     fragmentShaderID = loadShader(frag, GL_FRAGMENT_SHADER);
     vertexShaderID = loadShader(vert, GL_VERTEX_SHADER);
+
     programID = glCreateProgram();
+
     glAttachShader(programID, fragmentShaderID);
     glAttachShader(programID, vertexShaderID);
     glLinkProgram(programID);
+
+    GLint err;
 }
 
 ShaderProgram::~ShaderProgram(void) {
@@ -71,7 +76,7 @@ ShaderProgram::~ShaderProgram(void) {
     }
 }
 
-void ShaderProgram::Use(void) const {
+void ShaderProgram::Bind(void) const {
     glUseProgram(programID);
 }
 
@@ -102,7 +107,7 @@ void ShaderManager::load(void) {
 void ShaderManager::use(std::string name) {
     assert(progs.find(name) != progs.end());
 
-    progs[name]->Use();
+    progs[name]->Bind();
 }
 
 GLuint ShaderManager::getProgID(const std::string& name) {

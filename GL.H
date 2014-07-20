@@ -13,8 +13,10 @@ extern "C" {
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
-//#include <glm/gtx/transform.hpp>
+#include <glm/gtx/transform.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/trigonometric.hpp>
+#include <glm/gtc/random.hpp>
 
 #endif // ~_GL_H_
