@@ -23,9 +23,11 @@ char *readFile(const char *fname) {
 }
 
 void checkGL(void) {
+#ifdef _DEBUG
     GLuint err = glGetError();
     if (GL_NO_ERROR!=err) {
         fprintf(stderr, "%s\n", gluErrorString(err));
         exit(EXIT_FAILURE);
     }
+#endif
 }

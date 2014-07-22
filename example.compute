@@ -27,8 +27,7 @@ void main() {
 	storePos = ivec2(gl_GlobalInvocationID.xy);
 	srcCol = imageLoad(destTex, storePos);
 	
-	float a = gl_GlobalInvocationID.x/256.0f;
-	destCol = vec4(srcCol.rgb, a);
+	destCol = vec4(srcCol.rgb, 0.5f);
 
 	imageStore(destTex, storePos, destCol);
 }

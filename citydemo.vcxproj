@@ -86,21 +86,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Contouring.cpp" />
     <ClCompile Include="essentials.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
-    <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="World.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="citydemo.h" />
+    <ClInclude Include="Contouring.h" />
     <ClInclude Include="essentials.h" />
     <ClInclude Include="GL.h" />
+    <ClInclude Include="GLM.h" />
     <ClInclude Include="ParticleSystem.h" />
-    <ClInclude Include="Renderer.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="Tables.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="World.h" />
   </ItemGroup>

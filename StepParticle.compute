@@ -1,12 +1,16 @@
 #version 440 core
-layout(local_size_x = 64) in;
+
 struct pos { float x, y, z; };
-layout(std430, binding = 4) buffer shader_data { pos points[]; };
+
+layout(local_size_x = 32) in;
+layout(std430, binding = 3) buffer shader_data { pos points[]; };
+
 float rand(float seed) { return fract(sin(dot(gl_GlobalInvocationID.xy+vec2(seed,seed), vec2(12.9898,78.233))) * 43758.5453); }
 float unif(float seed, float a, float b) {return a + (b-a)*rand(seed);}
-void main() {
-   points[gl_GlobalInvocationID.x].x *= unif(0,0.999f, 1.001f);
-   points[gl_GlobalInvocationID.x].y *= unif(1,0.999f, 1.001f);
-   points[gl_GlobalInvocationID.x].z *= unif(2,0.999f, 1.001f);
 
+void main() {
+	float k = 0.001f;
+	points[gl_GlobalInvocationID.x].x += unif(0.0f, -k, k);
+	points[gl_GlobalInvocationID.x].y += unif(1.0f, -k, k);
+	points[gl_GlobalInvocationID.x].z += unif(2.0f, -k, k);
 }

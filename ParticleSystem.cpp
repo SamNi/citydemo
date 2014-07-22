@@ -1,4 +1,5 @@
 #include "ParticleSystem.h"
+#include "GLM.h"
 
 ParticleSystem::ParticleSystem(void) {
     // deliberately left blank
@@ -19,19 +20,20 @@ void ParticleSystem::Init(int64_t n) {
     glBufferData(GL_SHADER_STORAGE_BUFFER, 3*nParticles*sizeof(GLfloat), nullptr, GL_DYNAMIC_COPY);
     checkGL();
 
-    LoadComputeShader("InitParticle.compute", initProgramID, initShaderID);
-    LoadComputeShader("StepParticle.compute", stepProgramID, stepShaderID);
-
-    glUseProgram(initProgramID);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo_points);
-    glDispatchCompute( (GLuint)glm::ceil(nParticles/64.0f), 1, 1);
-
     // VAO
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, ssbo_points);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(0);
+    checkGL();
+
+    LoadComputeShader("InitParticle.compute", initProgramID, initShaderID);
+    LoadComputeShader("StepParticle.compute", stepProgramID, stepShaderID);
+
+    glUseProgram(initProgramID);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo_points);
+    glDispatchCompute( (GLuint)glm::ceil(nParticles/64.0f), 1, 1);
     checkGL();
 }
 
@@ -74,18 +76,14 @@ void ParticleSystem::LoadComputeShader(const char *fname, GLuint& progID, GLuint
     delete[] shadSource;
 }
 void ParticleSystem::Step(void) {
-    checkGL();
     glUseProgram(stepProgramID);
-    checkGL();
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo_points);
-    checkGL();
-    glDispatchCompute( (GLuint)glm::ceil(nParticles/64.0f), 1, 1);
-    checkGL();
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo_points);
+    glDispatchCompute((GLuint)glm::ceil(nParticles/32.0f), 1, 1);
 }
 
+// make sure the vert/frag programs are in use before calling this (client responsibility)
 void ParticleSystem::Draw(void) {
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, ssbo_points);
     glDrawArrays(GL_TRIANGLES, 0, nParticles);
-    checkGL();
 }
