@@ -122,16 +122,6 @@ void VoxGrid::Clear(void) {
                 z = k - (depth/2);
 
                 // http://paulbourke.net/geometry/polygonise/polygonise1.gif
-                /*
-                GetCell(i,j,k).corners[0] = vec3((float)x+0, (float)y+0, (float)z+0);
-                GetCell(i,j,k).corners[1] = vec3((float)x+1, (float)y+0, (float)z+0);
-                GetCell(i,j,k).corners[2] = vec3((float)x+0, (float)y+0, (float)z+1);
-                GetCell(i,j,k).corners[3] = vec3((float)x+1, (float)y+0, (float)z+1);
-                GetCell(i,j,k).corners[4] = vec3((float)x+0, (float)y+1, (float)z+0);
-                GetCell(i,j,k).corners[5] = vec3((float)x+1, (float)y+1, (float)z+0);
-                GetCell(i,j,k).corners[6] = vec3((float)x+0, (float)y+1, (float)z+1);
-                GetCell(i,j,k).corners[7] = vec3((float)x+1, (float)y+1, (float)z+1);
-                */
                 GetCell(i,j,k).corners[0] = vec3((float)x+0, (float)y+0, (float)z+1);
                 GetCell(i,j,k).corners[1] = vec3((float)x+1, (float)y+0, (float)z+1);
                 GetCell(i,j,k).corners[2] = vec3((float)x+1, (float)y+0, (float)z+0);
@@ -144,8 +134,13 @@ void VoxGrid::Clear(void) {
                 for (n = 0;n < 8;++n) {
                     vec3 corner = GetCell(i,j,k).corners[n];
                     float mag = glm::sqrt( corner.x*corner.x + corner.y*corner.y + corner.z*corner.z );
-                    float val = glm::sin(0.08*mag);
-                    GetCell(i,j,k).val[n] = val;
+                    float x = corner.x;
+                    float y = corner.y;
+                    float z = corner.z;
+                    //float val = mag - 20;
+                    float val1 = glm::sin(0.25f*mag);
+                    float val2 = 0.0f;
+                    GetCell(i,j,k).val[n] = val1 - val2;
                 }
             }
         }
@@ -163,7 +158,7 @@ void VoxGrid::Draw(void) {
         Triangle tris[5];
         int i, j, k, n, c, x;
 
-        points = new GLfloat[15*1024*1024];
+        points = new GLfloat[25*1024*1024];
         c = 0;
         for (i = 0;i < width;++i) {
             for (j = 0;j < height;++j) {

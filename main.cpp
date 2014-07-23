@@ -13,7 +13,7 @@
 
 #define WIDTH               (1600)
 #define HEIGHT              (900)
-#define FOV                 (25)
+#define FOV                 (60)
 #define NUM_TRIANGLES       (3500)
 
 static void error_callback(int err, const char *descr);
@@ -60,13 +60,16 @@ struct GPU {
 
         fprintf(stdout, "%s\n%s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
 
-        glClearColor(0,0,0,1);
+        glClearColor(0.2f,0.2f,0.2f,1);
         //glEnable(GL_DEPTH_TEST);
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_MULTISAMPLE);
+        glEnable(GL_LINE_SMOOTH);
         glEnable(GL_POLYGON_SMOOTH);
+        //glEnable(GL_CULL_FACE);
+        //glCullFace(GL_BACK);
 
         glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_texture_units);
         printf("%d texture image units\n", max_texture_units);
@@ -181,19 +184,19 @@ int main(int argc, char *argv[]) {
 
     ShaderManager shMan;
     shMan.load();
-    shMan.use("white");
+    shMan.use("textured");
     checkGL();
 
     Texture textures[] = {
-        Texture("kei.png"),
-        Texture("gradient.png"),
-        Texture("oreimo.png"),
-        Texture("doesnotexist.png"),
+        Texture("Grayscale.png"),
+        Texture("GrayscaleAlpha1024.png"),
+        Texture("RGB1024.png"),
+        Texture("RGBA1024.png"),
     };
     const int nTextures = sizeof(textures)/sizeof(Texture);
     checkGL();
 
-    GLuint location = shMan.getProgID("white");
+    GLuint location = shMan.getProgID("textured");
 
     //ParticleSystem ps;
     //ps.Init(NUM_TRIANGLES*3);
@@ -254,27 +257,23 @@ int main(int argc, char *argv[]) {
     glUniformMatrix4fv(glGetUniformLocation(location, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
     static float seed, rotAngle = 0.0f;
 
-    VoxGrid vg(90,90,90);
-
-    vg.Clear();
+    //VoxGrid vg(40,40,40);
+    //vg.Clear();
 
     while(!theGPU.Done()) {
         theGPU.BeginFrame();
+        //vg.Draw();
+        //ps.Draw();
+        //ps.Step();
 
-        modelView = glm::lookAt(glm::vec3(113, 113, 113), glm::vec3(0,0,0), glm::vec3(0,1,0))*glm::rotate(rotAngle, glm::vec3(0,1,0));
-
-
+        modelView = glm::lookAt(glm::vec3(3,3,3), glm::vec3(0,0,0), glm::vec3(0,1,0))*glm::rotate(rotAngle, glm::vec3(0,1,0));
         rotAngle += 0.025f;
-
         glUseProgram(location);
         glUniform1f(glGetUniformLocation(location, "seed"), (seed+=1));
         glUniformMatrix4fv(glGetUniformLocation(location, "modelView"), 1, GL_FALSE, glm::value_ptr(modelView));
-        vg.Draw();
-        //textures[int(rotAngle)%nTextures].Bind();
-        //glBindVertexArray(vao);
-        //glDrawArrays(GL_QUADS, 0, 8);
-        //ps.Draw();
-        //ps.Step();
+        textures[int(rotAngle)%nTextures].Bind();
+        glBindVertexArray(vao);
+        glDrawArrays(GL_QUADS, 0, 8);
 
         theGPU.EndFrame();
     }

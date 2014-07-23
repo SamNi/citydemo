@@ -17,8 +17,9 @@ struct Texture {
     GLuint getTexID(void) const;
 
     int width, height;
-    GLuint texID;
+    GLuint texID, format;
     uint8_t *pixels;
+    bool filter;
 
 private:
     bool Alloc(int nbytes);
