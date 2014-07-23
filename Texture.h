@@ -6,7 +6,7 @@
 struct Texture {
     Texture(void);
     Texture(int w, int h);
-    Texture(char *fname, bool filtered = true, bool Mipmapped = true);
+    Texture(char *fname, bool filtered = true, bool mipmapped = true);
     ~Texture(void);
 
     void Bind(void) const;
@@ -22,7 +22,7 @@ struct Texture {
     std::string path;
     GLuint texID, format;
     uint8_t *pixels;
-    bool filter;
+    bool bFilter;
     bool bUseMipmaps;
 
 private:

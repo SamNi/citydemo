@@ -7,7 +7,10 @@
 #include "Contouring.h"
 
 
+
 #include <GLFW/glfw3.h>
+
+#include <physfs/physfs.h>
 
 #pragma warning ( disable : 4100 4800 )
 
@@ -60,16 +63,16 @@ struct GPU {
 
         fprintf(stdout, "%s\n%s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
 
-        glClearColor(0.2f,0.2f,0.2f,1);
+        glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+        //glClearColor(1.0f,1.0f,1.0f,1.0f);
         //glEnable(GL_DEPTH_TEST);
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
         glEnable(GL_MULTISAMPLE);
         glEnable(GL_LINE_SMOOTH);
         glEnable(GL_POLYGON_SMOOTH);
-        //glEnable(GL_CULL_FACE);
-        //glCullFace(GL_BACK);
 
         glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_texture_units);
         printf("%d texture image units\n", max_texture_units);
@@ -132,20 +135,22 @@ static void size_callback(GLFWwindow *window, int width, int height) {
 }
 
 int main(int argc, char *argv[]) {
+    int i;
+
     theGPU.Init();
 
     GLuint vbo_position, vbo_texCoords, vao;
     {
         static GLfloat points[] = {
             // ccw order
-            -1.0f,+1.0f,0.0f, // upper left
-            -1.0f,-1.0f,0.0f, // lower left
-            +1.0f,-1.0f,0.0f, // lower right
-            +1.0f,+1.0f,0.0f, // upper right
-            -1.0f,+1.0f,1.0f, // upper left
-            -1.0f,-1.0f,1.0f, // lower left
-            +1.0f,-1.0f,1.0f, // lower right
-            +1.0f,+1.0f,1.0f, // upper right
+            -1.0f,+1.0f, 0.0f, // upper left
+            -1.0f,-1.0f, 0.0f, // lower left
+            +1.0f,-1.0f, 0.0f, // lower right
+            +1.0f,+1.0f, 0.0f, // upper right
+            -1.0f, 0.0f, 1.0f,
+            +1.0f, 0.0f, 1.0f,
+            +1.0f, 0.0f,-1.0f,
+            -1.0f, 0.0f,-1.0f,
         };
         static GLfloat texCoords[] = {
             0,0,        // upper left
@@ -187,15 +192,19 @@ int main(int argc, char *argv[]) {
     shMan.use("textured");
     checkGL();
 
-    Texture textures[] = {
-        Texture("Grayscale.png"),
-        Texture("GrayscaleAlpha1024.png"),
-        Texture("RGB1024.png"),
-        Texture("RGBA1024.png"),
-        Texture("RGBA64.png"),
-        Texture("oreimo.png"),
-    };
-    const int nTextures = sizeof(textures)/sizeof(Texture);
+    /*
+    const int nTextures = 280;
+    std::list<Texture*> textures;
+    for (i = 0;i < nTextures;++i) {
+        static char fname[64];
+        sprintf(fname, "img\\img%05d.png", i+1);
+        textures.push_back( new Texture(fname) );
+    }*/
+    std::list<Texture*> textures;
+    const int nTextures = 1;
+    //textures.push_back(new Texture("img\\img00028.png"));
+    textures.push_back(new Texture());
+
     checkGL();
 
     GLuint location = shMan.getProgID("textured");
@@ -262,29 +271,34 @@ int main(int argc, char *argv[]) {
     //VoxGrid vg(40,40,40);
     //vg.Clear();
 
-    int i;
-    for (i = 0;i < sizeof(textures) / sizeof(Texture);++i) {
-        printf("%s %d\n", textures[i].getName(), textures[i].getSizeInBytes());
-    }
+    std::list<Texture*>::const_iterator it;
+    for (it = textures.begin();it != textures.end();++it)
+        printf("%s %d\n", (*it)->getName(), (*it)->getSizeInBytes());
 
+    it = textures.begin();
     while(!theGPU.Done()) {
         theGPU.BeginFrame();
         //vg.Draw();
         //ps.Draw();
         //ps.Step();
 
-        modelView = glm::lookAt(glm::vec3(0,0,50), glm::vec3(0,0,0), glm::vec3(0,1,0))*glm::rotate(rotAngle, glm::vec3(0,1,0));
+        modelView = glm::lookAt(glm::vec3(3,3,3), glm::vec3(0,0,0), glm::vec3(0,1,0))*glm::rotate(rotAngle, glm::vec3(0,1,0));
         rotAngle += 0.025f;
         glUseProgram(location);
         glUniform1f(glGetUniformLocation(location, "seed"), (seed+=1));
         glUniformMatrix4fv(glGetUniformLocation(location, "modelView"), 1, GL_FALSE, glm::value_ptr(modelView));
-        textures[int(rotAngle)%nTextures].Bind();
+        (*it)->Bind();
+        it++;
+        if (it == textures.end())
+            it = textures.begin();
         glBindVertexArray(vao);
         glDrawArrays(GL_QUADS, 0, 8);
 
         theGPU.EndFrame();
     }
-
+    for (it = textures.begin();it != textures.end();++it) {
+        delete (*it);
+    }
     theGPU.Quit();
 
     return EXIT_SUCCESS;

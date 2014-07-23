@@ -8,18 +8,16 @@
 #include <zlib.h>
 #include <png.h>
 
-Texture::Texture(void) : pixels(nullptr), width(8), height(8), texID(0), filter(true), bUseMipmaps(false) {
+Texture::Texture(void) : pixels(nullptr), width(8), height(8), texID(0), bFilter(true), bUseMipmaps(false) {
     MakeCheckerboard();
-    UpGL();
 }
 
-Texture::Texture(int w, int h) : pixels(nullptr), width(w), height(h), texID(0), filter(true), bUseMipmaps(false) {
+Texture::Texture(int w, int h) : pixels(nullptr), width(w), height(h), texID(0), bFilter(true), bUseMipmaps(false) {
     assert(w && h);
     MakeCheckerboard();
-    UpGL(); 
 }
 
-Texture::Texture(char *fname, bool filtered, bool Mipmapped) : pixels(nullptr), width(8), height(8), texID(0), filter(filtered), bUseMipmaps(Mipmapped) {
+Texture::Texture(char *fname, bool filtered, bool mipmapped) : pixels(nullptr), width(8), height(8), texID(0), bFilter(filtered), bUseMipmaps(mipmapped) {
     png_image img;
 
     path = std::string(fname);
@@ -61,9 +59,6 @@ Texture::Texture(char *fname, bool filtered, bool Mipmapped) : pixels(nullptr), 
         this->format = GL_RGBA;
         nComponents = 4;
         break;
-    case PNG_FORMAT_GRAY:
-        this->format = GL_RED;
-        nComponents = 1;
     default:
         fprintf(stderr, "Unsupported format\n");
         MakeCheckerboard();
@@ -77,7 +72,9 @@ Texture::~Texture(void) {
     glDeleteTextures(1, &texID);
 }
 
-void Texture::Bind(void) const { glBindTexture(GL_TEXTURE_2D, texID); }
+void Texture::Bind(void) const {
+    glBindTexture(GL_TEXTURE_2D, texID);
+}
 void Texture::Refresh(void) {
     UpGL();
 }
@@ -101,8 +98,7 @@ static inline double log2(double x) { return log(x)/log(2); }
 static inline int ComputeMipmapLevel(int w, int h) { return (int)ceil(log2(max(w, h))); }
 
 void Texture::UpGL() {
-    // Reinterprets RG to grayscale alpha as intended
-    const static GLint swizzleMask[] = { GL_RED, GL_RED, GL_RED, GL_GREEN };
+    // Reinterprets RG to grayscale alpha as intended for those that need it
 
     if (0 == texID)
         glGenTextures(1, &texID);
@@ -110,23 +106,10 @@ void Texture::UpGL() {
     glBindTexture(GL_TEXTURE_2D, texID);
 
     GLuint internalFormat;
-    switch (this->format) {
-        
-    case GL_RGBA:
-    case GL_RGB:
-        internalFormat = GL_RGBA8;
-        break;
-    case GL_RED:
-        internalFormat = GL_R8;
-        break;
-    case GL_RG:
-        internalFormat = GL_RG8;
-        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
-        break;
-    default:
-        internalFormat = 0xDEADBEEF;    // shut compiler warning up
-        assert(!"this shouldn't happen");
-    }
+
+    // 
+    format = GL_BGRA;
+    internalFormat = GL_RGBA8;
 
     // The old way: Mutable storage. 
     // glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, this->format, GL_UNSIGNED_BYTE, pixels);
@@ -134,17 +117,22 @@ void Texture::UpGL() {
     // 
     // The new way: Immutable storage.
     int nMipmaps = bUseMipmaps ? ComputeMipmapLevel(width, height) : 1;
+    checkGL();
     glTexStorage2D(GL_TEXTURE_2D, nMipmaps, internalFormat, width, height);
+    checkGL();
     glBindImageTexture(0, texID, 0, GL_FALSE, 0, GL_WRITE_ONLY, internalFormat);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, this->format, GL_UNSIGNED_BYTE, pixels);
+    checkGL();
+    //glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, format, GL_UNSIGNED_BYTE, pixels);
     checkGL();
     if (bUseMipmaps) {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, bFilter ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST);
         glGenerateMipmap(GL_TEXTURE_2D);
     } else {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter ? GL_LINEAR : GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, bFilter ? GL_LINEAR : GL_NEAREST);
     }
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter ? GL_LINEAR : GL_NEAREST);
+    checkGL();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, bFilter ? GL_LINEAR : GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     checkGL();
@@ -170,34 +158,32 @@ void Texture::DeAlloc(void) {
     pixels = nullptr;
 }
 
-// Generate 8x8 grayscale alpha checkerboard
 // Useful placeholder in the case when textures don't
 // load for whatever reason
 void Texture::MakeCheckerboard(void) {
     static int i, j, addr;
     static bool hot;
 
-    nComponents = 2;
-    Alloc(nComponents*width*height);
+    nComponents = 4;
+    Alloc(nComponents*width*height*sizeof(uint8_t));
+    checkGL();
 
     assert(pixels);
     if (!pixels)
         return;
 
-    format = GL_RG;
-    filter = false;
-
+    this->format = GL_RGBA;
+    bFilter = false;
+    bUseMipmaps = false;
     hot = false;
-    for (i = 0;i < width;++i) {
-        for (j = 0;j < height;++j, hot = !hot) {
-            addr = nComponents*(width*j + i);
-            if (hot) {
-                pixels[addr+0] = 192;
-                pixels[addr+1] = 192;
-            } else {
-                pixels[addr+0] = 51;
-                pixels[addr+1] = 127;
-            }
+    for (j = 0;j < height;++j) {
+        for (i = 0;i < width;++i, hot = !hot) {
+            addr = (width*j + i)*nComponents;
+            uint8_t val = hot ? 255: 0;
+            pixels[addr+0] = 0;
+            pixels[addr+1] = hot;
+            pixels[addr+2] = hot;
+            pixels[addr+3] = 255;
         }
         hot = !hot;
     }

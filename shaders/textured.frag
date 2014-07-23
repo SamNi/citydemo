@@ -50,8 +50,9 @@ void main() {
 	// Negative
 	//FragColor = vec4(1.) - texture(Diffuse, texOut);
 
-	// Conventional way
-    FragColor = texture(Diffuse, texOut);
+	// Conventional way (alpha blended)
+	// emulating glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	FragColor = texture(Diffuse, texOut);
 }
 
 vec4 f() {
