@@ -107,8 +107,6 @@ void Texture::UpGL() {
 
     GLuint internalFormat;
 
-    // 
-    format = GL_BGRA;
     internalFormat = GL_RGBA8;
 
     // The old way: Mutable storage. 
@@ -122,7 +120,7 @@ void Texture::UpGL() {
     checkGL();
     glBindImageTexture(0, texID, 0, GL_FALSE, 0, GL_WRITE_ONLY, internalFormat);
     checkGL();
-    //glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, format, GL_UNSIGNED_BYTE, pixels);
     checkGL();
     if (bUseMipmaps) {
@@ -179,11 +177,17 @@ void Texture::MakeCheckerboard(void) {
     for (j = 0;j < height;++j) {
         for (i = 0;i < width;++i, hot = !hot) {
             addr = (width*j + i)*nComponents;
-            uint8_t val = hot ? 255: 0;
-            pixels[addr+0] = 0;
-            pixels[addr+1] = hot;
-            pixels[addr+2] = hot;
-            pixels[addr+3] = 255;
+            if (hot) {
+                pixels[addr+0] = 255;
+                pixels[addr+1] = 0;
+                pixels[addr+2] = 255;
+                pixels[addr+3] = 255;
+            } else {
+                pixels[addr+0] = 0;
+                pixels[addr+1] = 255;
+                pixels[addr+2] = 0;
+                pixels[addr+3] = 64;
+            }
         }
         hot = !hot;
     }

@@ -63,7 +63,7 @@ struct GPU {
 
         fprintf(stdout, "%s\n%s\n", glGetString(GL_RENDERER), glGetString(GL_VERSION));
 
-        glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         //glClearColor(1.0f,1.0f,1.0f,1.0f);
         //glEnable(GL_DEPTH_TEST);
         glDisable(GL_DEPTH_TEST);
@@ -209,8 +209,8 @@ int main(int argc, char *argv[]) {
 
     GLuint location = shMan.getProgID("textured");
 
-    //ParticleSystem ps;
-    //ps.Init(NUM_TRIANGLES*3);
+    ParticleSystem ps;
+    ps.Init(NUM_TRIANGLES*3);
 
     // compute shader boilerplate
     GLuint progHandle, cs;
@@ -284,6 +284,7 @@ int main(int argc, char *argv[]) {
 
         modelView = glm::lookAt(glm::vec3(3,3,3), glm::vec3(0,0,0), glm::vec3(0,1,0))*glm::rotate(rotAngle, glm::vec3(0,1,0));
         rotAngle += 0.025f;
+        
         glUseProgram(location);
         glUniform1f(glGetUniformLocation(location, "seed"), (seed+=1));
         glUniformMatrix4fv(glGetUniformLocation(location, "modelView"), 1, GL_FALSE, glm::value_ptr(modelView));
@@ -293,6 +294,7 @@ int main(int argc, char *argv[]) {
             it = textures.begin();
         glBindVertexArray(vao);
         glDrawArrays(GL_QUADS, 0, 8);
+        
 
         theGPU.EndFrame();
     }
