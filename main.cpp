@@ -192,6 +192,8 @@ int main(int argc, char *argv[]) {
         Texture("GrayscaleAlpha1024.png"),
         Texture("RGB1024.png"),
         Texture("RGBA1024.png"),
+        Texture("RGBA64.png"),
+        Texture("oreimo.png"),
     };
     const int nTextures = sizeof(textures)/sizeof(Texture);
     checkGL();
@@ -260,13 +262,18 @@ int main(int argc, char *argv[]) {
     //VoxGrid vg(40,40,40);
     //vg.Clear();
 
+    int i;
+    for (i = 0;i < sizeof(textures) / sizeof(Texture);++i) {
+        printf("%s %d\n", textures[i].getName(), textures[i].getSizeInBytes());
+    }
+
     while(!theGPU.Done()) {
         theGPU.BeginFrame();
         //vg.Draw();
         //ps.Draw();
         //ps.Step();
 
-        modelView = glm::lookAt(glm::vec3(3,3,3), glm::vec3(0,0,0), glm::vec3(0,1,0))*glm::rotate(rotAngle, glm::vec3(0,1,0));
+        modelView = glm::lookAt(glm::vec3(0,0,50), glm::vec3(0,0,0), glm::vec3(0,1,0))*glm::rotate(rotAngle, glm::vec3(0,1,0));
         rotAngle += 0.025f;
         glUseProgram(location);
         glUniform1f(glGetUniformLocation(location, "seed"), (seed+=1));
