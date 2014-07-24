@@ -65,6 +65,7 @@ Texture::Texture(char *fname, bool filtered, bool mipmapped) : pixels(nullptr), 
         break;
     }
     UpGL();
+    DeAlloc();
 }
 
 Texture::~Texture(void) {
@@ -86,8 +87,10 @@ GLuint Texture::getTexID(void) const {
 const char *Texture::getName(void) const { return this->path.c_str(); }
 
 size_t Texture::getSizeInBytes(void) const {
-    assert(pixels);
-    return width*height*nComponents + sizeof(Texture);
+    if (pixels)
+        return width*height*nComponents + sizeof(Texture);
+    else
+        return 0;
 }
 
 uint8_t *Texture::getPixels(void) const {

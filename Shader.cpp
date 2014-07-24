@@ -2,9 +2,12 @@
 
 #define SHADER_DIR                  "shaders"
 const char *names[] = { 
+    "standard",
     "diffuse",
     "white",
     "textured",
+    "passthrough",
+    "2dortho",
     NULL };
 
 struct ShaderProgram {

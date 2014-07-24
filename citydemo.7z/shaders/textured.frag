@@ -2,10 +2,42 @@
 #pragma debug(on)
 
 in vec2 texOut;
+in vec3 normalOut;
+in vec4 colorOut;
 out vec4 FragColor;
 
-uniform sampler2D Diffuse;
+uniform sampler2D texMap;
 uniform float seed;
+
+void main() {
+	float kDiffuse = dot(normalize(normalOut), normalize(vec3(0.0f, 0.0f, -1.0f)));
+
+	if (kDiffuse > 0)
+		FragColor = kDiffuse*colorOut*texture(texMap, texOut);
+	else
+		FragColor = vec4(0,0,0,1.0f);
+}
+
+
+
+
+/// ignore everything below. this is the graveyard
+
+// Uncomment for R-only grayscale textures
+//FragColor = texture(texMap, texOut).rrra;
+    
+// Swizzle r,g,b
+//FragColor = texture(texMap, texOut).bgra;
+
+// Negative
+//FragColor = vec4(1.) - texture(texMap, texOut);
+
+// Conventional way (alpha blended)
+// emulating glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//FragColor = vec4(1,0,0,1);
+
+
+
 
 vec4 f();
 vec4 g();
@@ -38,21 +70,6 @@ float rand() {
 
 float unif(float a, float b) {
 	return a + (b-a)*rand();
-}
-
-void main() {
-    // Uncomment for R-only grayscale textures
-    //FragColor = texture(Diffuse, texOut).rrra;
-    
-	// Swizzle r,g,b
-	//FragColor = texture(Diffuse, texOut).bgra;
-
-	// Negative
-	//FragColor = vec4(1.) - texture(Diffuse, texOut);
-
-	// Conventional way (alpha blended)
-	// emulating glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	FragColor = texture(Diffuse, texOut);
 }
 
 vec4 f() {

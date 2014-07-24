@@ -36,6 +36,15 @@
     <ClCompile Include="Contouring.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FBO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Backend.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Manager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="essentials.h">
@@ -68,6 +77,15 @@
     <ClInclude Include="Tables.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FBO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Backend.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Manager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\white.frag" />
@@ -79,5 +97,11 @@
     <None Include="example.compute" />
     <None Include="InitParticle.compute" />
     <None Include="StepParticle.compute" />
+    <None Include="shaders\passthrough.frag" />
+    <None Include="shaders\passthrough.vert" />
+    <None Include="shaders\standard.frag" />
+    <None Include="shaders\standard.vert" />
+    <None Include="shaders\2dortho.frag" />
+    <None Include="shaders\2dortho.vert" />
   </ItemGroup>
 </Project>

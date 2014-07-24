@@ -43,11 +43,13 @@
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>external\include;..\..\glm;..\..\glew-1.10.0\include;..\..\glfw-3.0.4.bin.WIN32\include;..\..\freeglut-2.8.1\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);</IncludePath>
     <LibraryPath>external\lib;"..\..\glew-1.10.0\lib\Release\Win32";..\..\glfw-3.0.4.bin.WIN32\lib-msvc120;..\..\freeglut-2.8.1\lib\x86;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>external\include;..\..\glm;..\..\glew-1.10.0\include;..\..\glfw-3.0.4.bin.WIN32\include;..\..\freeglut-2.8.1\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);</IncludePath>
     <LibraryPath>external\lib;"..\..\glew-1.10.0\lib\Release\Win32";..\..\glfw-3.0.4.bin.WIN32\lib-msvc120;..\..\freeglut-2.8.1\lib\x86;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <PostBuildEventUseInBuild>false</PostBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -64,6 +66,12 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>zlib.lib;zdll.lib;libpng.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;glfw3dll.lib;glfw3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>cpplint.py --output=vs7 Backend.cpp</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Linting</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -84,22 +92,34 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>zlib.lib;zdll.lib;libpng.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;glfw3dll.lib;glfw3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>cpplint.py --output=vs7 Backend.cpp</Command>
+    </PostBuildEvent>
+    <PostBuildEvent>
+      <Message>Linting</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Backend.cpp" />
     <ClCompile Include="Contouring.cpp" />
     <ClCompile Include="essentials.cpp" />
+    <ClCompile Include="FBO.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Manager.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="World.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Backend.h" />
     <ClInclude Include="citydemo.h" />
     <ClInclude Include="Contouring.h" />
     <ClInclude Include="essentials.h" />
+    <ClInclude Include="FBO.h" />
     <ClInclude Include="GL.h" />
     <ClInclude Include="GLM.h" />
+    <ClInclude Include="Manager.h" />
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Tables.h" />
@@ -109,8 +129,14 @@
   <ItemGroup>
     <None Include="example.compute" />
     <None Include="InitParticle.compute" />
+    <None Include="shaders\2dortho.frag" />
+    <None Include="shaders\2dortho.vert" />
     <None Include="shaders\diffuse.frag" />
     <None Include="shaders\diffuse.vert" />
+    <None Include="shaders\passthrough.frag" />
+    <None Include="shaders\passthrough.vert" />
+    <None Include="shaders\standard.frag" />
+    <None Include="shaders\standard.vert" />
     <None Include="shaders\textured.frag" />
     <None Include="shaders\textured.vert" />
     <None Include="shaders\white.frag" />
