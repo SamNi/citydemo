@@ -3,10 +3,25 @@
 #include "essentials.h"
 #include "GL.H"
 
+// Image : API-independent
+// Texture : Everything needed to function with OpenGL + the associated image
+
+enum ImageFormat {
+    RGB,
+    RGBA,
+    GRAYSCALE
+};
+
+struct Image {
+    int w, h;
+    uint8_t *pixels;
+    ImageFormat fmt;
+};
+
 struct Texture {
     Texture(void);
     Texture(int w, int h);
-    Texture(char *fname, bool filtered = true, bool mipmapped = true);
+    Texture(const char *fname, bool filtered = true, bool mipmapped = true);
     ~Texture(void);
 
     void Bind(void) const;
@@ -17,13 +32,14 @@ struct Texture {
     const char *getName(void) const;
     size_t getSizeInBytes(void) const;
 
-    int width, height;
     int nComponents;
     std::string path;
-    GLuint texID, format;
-    uint8_t *pixels;
+    GLuint texID;
+    GLuint sizedFormat, baseFormat;
     bool bFilter;
     bool bUseMipmaps;
+
+    Image img;
 
 private:
     bool Alloc(int nbytes);
@@ -31,9 +47,6 @@ private:
     void DeAlloc(void);
     void UpGL();
     void MakeCheckerboard(void);
-};
-
-struct TextureManager {
 };
 
 #endif // ~_TEXTURE_H_

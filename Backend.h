@@ -2,6 +2,7 @@
 #ifndef _BACKEND_H_
 #define _BACKEND_H_
 #include "essentials.h"
+namespace BackEnd {
 
 // Think about:
 // what kind of low level commands might my backend render queue provide?
@@ -18,19 +19,13 @@
 // do I really want to double buf anything?
 //      and if so, what?
 
-class BackEnd {
-public:
-    bool Startup(void);
-    void Shutdown(void);
-    bool Done(void) const;
+bool Startup(void);
+void Shutdown(void);
+bool Done(void);
 
-    void BeginFrame(void);
-    void EndFrame(void);
+void BeginFrame(void);
+void EndFrame(void);
 
-    void DefaultGLState(void);
-
-private:
-    struct BackEnd_Internal;
-    BackEnd_Internal *mInternal;
-};
+void DefaultGLState(void);
+}
 #endif // ~_BACKEND_H_

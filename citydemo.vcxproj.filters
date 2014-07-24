@@ -42,7 +42,7 @@
     <ClCompile Include="Backend.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Manager.cpp">
+    <ClCompile Include="ResourceManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -83,25 +83,8 @@
     <ClInclude Include="Backend.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Manager.h">
+    <ClInclude Include="ResourceManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="shaders\white.frag" />
-    <None Include="shaders\white.vert" />
-    <None Include="shaders\diffuse.frag" />
-    <None Include="shaders\diffuse.vert" />
-    <None Include="shaders\textured.frag" />
-    <None Include="shaders\textured.vert" />
-    <None Include="example.compute" />
-    <None Include="InitParticle.compute" />
-    <None Include="StepParticle.compute" />
-    <None Include="shaders\passthrough.frag" />
-    <None Include="shaders\passthrough.vert" />
-    <None Include="shaders\standard.frag" />
-    <None Include="shaders\standard.vert" />
-    <None Include="shaders\2dortho.frag" />
-    <None Include="shaders\2dortho.vert" />
   </ItemGroup>
 </Project>

@@ -10,4 +10,4 @@
 #include "Contouring.h"
 #include "FBO.h"
 #include "Backend.h"
-#include "Manager.h"
+#include "ResourceManager.h"

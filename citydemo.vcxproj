@@ -64,7 +64,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>zlib.lib;zdll.lib;libpng.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;glfw3dll.lib;glfw3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lualib.lib;physfs.lib;zlib.lib;zdll.lib;libpng.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;glfw3dll.lib;glfw3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>cpplint.py --output=vs7 Backend.cpp</Command>
@@ -90,7 +90,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>zlib.lib;zdll.lib;libpng.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;glfw3dll.lib;glfw3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lualib.lib;physfs.lib;zlib.lib;zdll.lib;libpng.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;glfw3dll.lib;glfw3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>cpplint.py --output=vs7 Backend.cpp</Command>
@@ -105,8 +105,8 @@
     <ClCompile Include="essentials.cpp" />
     <ClCompile Include="FBO.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Manager.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
+    <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="World.cpp" />
@@ -119,29 +119,12 @@
     <ClInclude Include="FBO.h" />
     <ClInclude Include="GL.h" />
     <ClInclude Include="GLM.h" />
-    <ClInclude Include="Manager.h" />
     <ClInclude Include="ParticleSystem.h" />
+    <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Tables.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="World.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="example.compute" />
-    <None Include="InitParticle.compute" />
-    <None Include="shaders\2dortho.frag" />
-    <None Include="shaders\2dortho.vert" />
-    <None Include="shaders\diffuse.frag" />
-    <None Include="shaders\diffuse.vert" />
-    <None Include="shaders\passthrough.frag" />
-    <None Include="shaders\passthrough.vert" />
-    <None Include="shaders\standard.frag" />
-    <None Include="shaders\standard.vert" />
-    <None Include="shaders\textured.frag" />
-    <None Include="shaders\textured.vert" />
-    <None Include="shaders\white.frag" />
-    <None Include="shaders\white.vert" />
-    <None Include="StepParticle.compute" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

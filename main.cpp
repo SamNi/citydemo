@@ -1,92 +1,17 @@
 // Copyright 2014 SamNi PlaceholderLicenseText
 #include "citydemo.h"
 
-#pragma warning ( disable : 4100 4800 )
 
-#define WIDTH               (1600)
-#define HEIGHT              (900)
-#define FOV                 (60)
-#define NUM_TRIANGLES       (3500)
-
-static void DrawQuad(void) {
-    static bool firstTime = true;
-    // these are all in UpLeft, DownLeft, DownRight, UpRight order
-    static const GLfloat points[] = {
-        // ccw order
-        -1.0f,+1.0f, 0.0f,
-        -1.0f,-1.0f, 0.0f,
-        +1.0f,-1.0f, 0.0f,
-        +1.0f,+1.0f, 0.0f,
-    };
-    static const GLfloat colors[] = {
-        1.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f, 1.0f,
-        1.0f, 1.0f, 1.0f, 1.0f,
-    };
-    static const GLfloat texCoords[] = {
-        0.0f,0.0f, 
-        0.0f,1.0f,  
-        1.0f,1.0f,
-        1.0f,0.0f, 
-    };
-    static const GLfloat normals[] = {
-        -1.0f, +1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
-        +1.0f, -1.0f, -1.0f,
-        +1.0f, +1.0f, -1.0f,
-    };
-    static GLuint vbo_position, vbo_colors, vbo_texCoords, vbo_normal, vao;
-    if (firstTime) {
-        glGenBuffers(1, &vbo_position);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
-        glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), points, GL_STATIC_DRAW);
-        checkGL();
-
-        glGenBuffers(1, &vbo_colors);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
-        glBufferData(GL_ARRAY_BUFFER, 4*4*sizeof(GLfloat), colors, GL_STATIC_DRAW);
-        checkGL();
-
-        glGenBuffers(1, &vbo_texCoords);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
-        glBufferData(GL_ARRAY_BUFFER, 2*4*sizeof(GLfloat), texCoords, GL_STATIC_DRAW);
-        checkGL();
-
-        glGenBuffers(1, &vbo_normal);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
-        glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), normals, GL_STATIC_DRAW);
-        checkGL();
-
-        glGenVertexArrays(1, &vao);
-        glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
-        checkGL();
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glEnableVertexAttribArray(2);
-        glEnableVertexAttribArray(3);
-        checkGL();
-
-        firstTime = false;
-    }
-    glBindVertexArray(vao);
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-}
 int main(int argc, char *argv[]) {
     int i;
 
-    BackEnd bk;
-
-    if (!bk.Startup()) {
+    if (!BackEnd::Startup()) {
         fprintf(stderr, "BackEnd::Startup\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (!Manager::Startup()) {
+        fprintf(stderr, "Manager::Startup\n");
         exit(EXIT_FAILURE);
     }
     /*
@@ -171,7 +96,7 @@ int main(int argc, char *argv[]) {
 
     std::list<Texture *>::const_iterator it = textures.begin();
     checkGL();*/
-    while(!bk.Done()) {
+    while(!BackEnd::Done()) {
         //vg.Draw();
         //glUseProgram(shMan.getProgID("white"));
         //ps.Draw();
@@ -181,7 +106,7 @@ int main(int argc, char *argv[]) {
         modelView = glm::lookAt(glm::vec3(3,3,3), glm::vec3(0,0,0), glm::vec3(0,1,0))*glm::rotate(rotAngle, glm::vec3(0,1,0));
         rotAngle += 0.025f;
         */
-        bk.BeginFrame();
+        BackEnd::BeginFrame();
         /*
         glClear(GL_COLOR_BUFFER_BIT);
         (*it)->Bind();
@@ -197,9 +122,10 @@ int main(int argc, char *argv[]) {
         glUniformMatrix4fv(glGetUniformLocation(location, "modelView"), 1, GL_FALSE, glm::value_ptr(modelView));
         DrawQuad();
         */
-        bk.EndFrame();
+        BackEnd::EndFrame();
     }
-    bk.Shutdown();
+    BackEnd::Shutdown();
+    Manager::Shutdown();
 
     return EXIT_SUCCESS;
 }

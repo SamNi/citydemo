@@ -7,56 +7,72 @@
 
 #include <zlib.h>
 #include <png.h>
+#include <physfs/physfs.h>
 
-Texture::Texture(void) : pixels(nullptr), width(8), height(8), texID(0), bFilter(true), bUseMipmaps(false) {
+Texture::Texture(void) : texID(0), bFilter(true), bUseMipmaps(false) {
+    img.w = 8;
+    img.h = 8;
+    img.pixels = nullptr;
     MakeCheckerboard();
 }
 
-Texture::Texture(int w, int h) : pixels(nullptr), width(w), height(h), texID(0), bFilter(true), bUseMipmaps(false) {
+Texture::Texture(int w, int h) : texID(0), bFilter(true), bUseMipmaps(false) {
     assert(w && h);
+    img.w = w;
+    img.h = h;
+    img.pixels = nullptr;
     MakeCheckerboard();
 }
 
-Texture::Texture(char *fname, bool filtered, bool mipmapped) : pixels(nullptr), width(8), height(8), texID(0), bFilter(filtered), bUseMipmaps(mipmapped) {
-    png_image img;
+Texture::Texture(const char *fname, bool filtered, bool mipmapped) : texID(0), bFilter(filtered), bUseMipmaps(mipmapped) {
+    img.w = 8;
+    img.h = 8;
+    img.pixels = nullptr;
 
+    // phyfs
+    PHYSFS_file *fin = nullptr;
+    PHYSFS_sint64 fileLen;
+    uint8_t *buf = nullptr;
+    fin = PHYSFS_openRead(fname);
+
+    if (nullptr == fin)
+        goto img_err;
+
+    fileLen = PHYSFS_fileLength(fin);
+    buf = new uint8_t[fileLen+1];
+    PHYSFS_read(fin, buf, 1, fileLen);
+    buf[fileLen] = '\0';            // ~physfs
+
+    // libpng
+    png_image img;
     path = std::string(fname);
     memset(&img, 0, sizeof(img));
     img.version = PNG_IMAGE_VERSION;
 
-    if (!png_image_begin_read_from_file(&img, fname)) {
-        fprintf(stderr, "couldn't read %s\n", fname);
-        MakeCheckerboard();
-        path = path + std::string(" COULD NOT READ ");
-        return;
-    }
+    if (!png_image_begin_read_from_memory(&img, buf, (png_size_t)fileLen))
+        goto img_err;
 
-    if (!Alloc(PNG_IMAGE_SIZE(img))) {
-        fprintf(stderr, "error allocing buf for %s\n", fname);
-        MakeCheckerboard();
-        path = path + std::string(" COULD NOT READ ");
-        return;
-    }
+    if (!Alloc(PNG_IMAGE_SIZE(img)))
+        goto img_err;
 
-    if (!png_image_finish_read(&img, NULL, pixels, 0, NULL)) {
-        fprintf(stderr, "png_image_finish_read failed on %s\n", fname);
-        MakeCheckerboard();
-        path = path + std::string(" COULD NOT READ ");
-        return;
-    }
-    
-    width = img.width;
-    height = img.height;
+    if (!png_image_finish_read(&img, NULL, this->img.pixels, 0, nullptr))
+        goto img_err;
+
+    delete[] buf;
+
+    // TODO: name shadows are confusing
+    this->img.w = img.width;
+    this->img.h = img.height;
 
     // TODO: grayscale with alpha requires special consideration due to the
     // deprecation of GL_LUMINANCE in OpenGL v4.x
     switch(img.format) {
     case PNG_FORMAT_RGB:
-        this->format = GL_RGB;
+        this->img.fmt = ImageFormat::RGB;
         nComponents = 3;
         break;
     case PNG_FORMAT_RGBA:
-        this->format = GL_RGBA;
+        this->img.fmt = ImageFormat::RGBA;
         nComponents = 4;
         break;
     default:
@@ -66,6 +82,17 @@ Texture::Texture(char *fname, bool filtered, bool mipmapped) : pixels(nullptr), 
     }
     UpGL();
     DeAlloc();
+    return;
+
+    // GOTO considered harmful
+img_err:
+    delete[] buf;
+    if (fin)
+        PHYSFS_close(fin);
+    fprintf(stderr, "couldn't read %s\n", fname);
+    MakeCheckerboard();
+    path = path + std::string("COULD NOT READ");
+    return;
 }
 
 Texture::~Texture(void) {
@@ -87,14 +114,14 @@ GLuint Texture::getTexID(void) const {
 const char *Texture::getName(void) const { return this->path.c_str(); }
 
 size_t Texture::getSizeInBytes(void) const {
-    if (pixels)
-        return width*height*nComponents + sizeof(Texture);
+    if (img.pixels)
+        return img.w*img.h*nComponents + sizeof(Texture);
     else
         return 0;
 }
 
 uint8_t *Texture::getPixels(void) const {
-    return pixels;
+    return img.pixels;
 }
 
 static inline double log2(double x) { return log(x)/log(2); }
@@ -108,23 +135,38 @@ void Texture::UpGL() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texID);
 
-    GLuint internalFormat;
-
-    internalFormat = GL_RGBA8;
+    // Note the distinction between our app's enum and the GL constants
+    switch(img.fmt) {
+    case ImageFormat::RGB:
+        baseFormat = GL_RGB;
+        sizedFormat = GL_RGBA8;
+        break;
+    case ImageFormat::RGBA:
+        baseFormat = GL_RGBA;
+        sizedFormat = GL_RGBA8;
+        break;
+    case ImageFormat::GRAYSCALE:
+        baseFormat = GL_RED;
+        sizedFormat = GL_RGBA8;
+        break;
+    default:
+        assert(!"I don't know this image format");
+        break;
+    }
 
     // The old way: Mutable storage. 
     // glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, this->format, GL_UNSIGNED_BYTE, pixels);
     // glBindImageTexture(0, texID, 0, GL_FALSE, 0, GL_WRITE_ONLY, internalFormat);
     // 
     // The new way: Immutable storage.
-    int nMipmaps = bUseMipmaps ? ComputeMipmapLevel(width, height) : 1;
+    int nMipmaps = bUseMipmaps ? ComputeMipmapLevel(img.w, img.h) : 1;
     checkGL();
-    glTexStorage2D(GL_TEXTURE_2D, nMipmaps, internalFormat, width, height);
+    glTexStorage2D(GL_TEXTURE_2D, nMipmaps, sizedFormat, img.w, img.h);
     checkGL();
-    glBindImageTexture(0, texID, 0, GL_FALSE, 0, GL_WRITE_ONLY, internalFormat);
+    glBindImageTexture(0, texID, 0, GL_FALSE, 0, GL_WRITE_ONLY, sizedFormat);
     checkGL();
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, format, GL_UNSIGNED_BYTE, pixels);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img.w, img.h, baseFormat, GL_UNSIGNED_BYTE, img.pixels);
     checkGL();
     if (bUseMipmaps) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, bFilter ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST);
@@ -143,9 +185,9 @@ bool Texture::Alloc(int w, int h) { return Alloc(3*w*h); }
 
 bool Texture::Alloc(int nbytes) {
     DeAlloc();
-    pixels = new uint8_t[nbytes];
-    assert(pixels);
-    if (!pixels) {
+    img.pixels = new uint8_t[nbytes];
+    assert(img.pixels);
+    if (!img.pixels) {
         fprintf(stderr, "Texture::Alloc failed (%d bytes)\n", nbytes);
         return false;
     }
@@ -153,10 +195,10 @@ bool Texture::Alloc(int nbytes) {
 }
 
 void Texture::DeAlloc(void) {
-    if (!pixels)
+    if (!img.pixels)
         return;
-    delete[] pixels;
-    pixels = nullptr;
+    delete[] img.pixels;
+    img.pixels = nullptr;
 }
 
 // Useful placeholder in the case when textures don't
@@ -166,33 +208,34 @@ void Texture::MakeCheckerboard(void) {
     static bool hot;
 
     nComponents = 4;
-    Alloc(nComponents*width*height*sizeof(uint8_t));
+    Alloc(nComponents*img.w*img.h*sizeof(uint8_t));
     checkGL();
 
-    assert(pixels);
-    if (!pixels)
+    assert(img.pixels);
+    if (!img.pixels)
         return;
 
-    this->format = GL_RGBA;
+    this->img.fmt = ImageFormat::RGBA;
     bFilter = false;
     bUseMipmaps = false;
     hot = false;
-    for (j = 0;j < height;++j) {
-        for (i = 0;i < width;++i, hot = !hot) {
-            addr = (width*j + i)*nComponents;
+    for (j = 0;j < img.h;++j) {
+        for (i = 0;i < img.w;++i, hot = !hot) {
+            addr = (img.w*j + i)*nComponents;
             if (hot) {
-                pixels[addr+0] = 255;
-                pixels[addr+1] = 0;
-                pixels[addr+2] = 255;
-                pixels[addr+3] = 255;
+                img.pixels[addr+0] = 255;
+                img.pixels[addr+1] = 0;
+                img.pixels[addr+2] = 255;
+                img.pixels[addr+3] = 255;
             } else {
-                pixels[addr+0] = 0;
-                pixels[addr+1] = 255;
-                pixels[addr+2] = 0;
-                pixels[addr+3] = 64;
+                img.pixels[addr+0] = 0;
+                img.pixels[addr+1] = 255;
+                img.pixels[addr+2] = 0;
+                img.pixels[addr+3] = 64;
             }
         }
         hot = !hot;
     }
     UpGL();
 }
+
