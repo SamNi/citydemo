@@ -1,20 +1,27 @@
-// Copyright 2014 SamNi PlaceholderLicenseText
-#include "citydemo.h"
+// Copyright [year] <Copyright Owner>
+#include "./citydemo.h"
+#include "./LuaBindings.h"
 
 
 int main(int argc, char *argv[]) {
     int i;
-
+    // There's a specific order that these need
+    // to be started up
     if (!BackEnd::Startup()) {
         fprintf(stderr, "BackEnd::Startup\n");
         exit(EXIT_FAILURE);
     }
 
-    if (!Manager::Startup()) {
+    if (!Lua::Startup()) {
+        fprintf(stderr, "Lua::Startup\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (!Manager::Startup(argv[0])) {
         fprintf(stderr, "Manager::Startup\n");
         exit(EXIT_FAILURE);
     }
-    /*
+    /* 
     ShaderManager shMan;
     shMan.load();
     shMan.use("standard");
@@ -96,17 +103,18 @@ int main(int argc, char *argv[]) {
 
     std::list<Texture *>::const_iterator it = textures.begin();
     checkGL();*/
-    while(!BackEnd::Done()) {
-        //vg.Draw();
-        //glUseProgram(shMan.getProgID("white"));
-        //ps.Draw();
-        //ps.Step();
+    while (!BackEnd::Done()) {
+        // vg.Draw();
+        // glUseProgram(shMan.getProgID("white"));
+        // ps.Draw();
+        // ps.Step();
         /*
         glUseProgram(shMan.getProgID("standard"));
         modelView = glm::lookAt(glm::vec3(3,3,3), glm::vec3(0,0,0), glm::vec3(0,1,0))*glm::rotate(rotAngle, glm::vec3(0,1,0));
         rotAngle += 0.025f;
         */
         BackEnd::BeginFrame();
+        glBindTexture(GL_TEXTURE_2D, 1);
         /*
         glClear(GL_COLOR_BUFFER_BIT);
         (*it)->Bind();
@@ -124,8 +132,9 @@ int main(int argc, char *argv[]) {
         */
         BackEnd::EndFrame();
     }
-    BackEnd::Shutdown();
     Manager::Shutdown();
+    Lua::Shutdown();
+    BackEnd::Shutdown();
 
     return EXIT_SUCCESS;
 }

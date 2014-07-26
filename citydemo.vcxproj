@@ -67,10 +67,12 @@
       <AdditionalDependencies>lualib.lib;physfs.lib;zlib.lib;zdll.lib;libpng.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;glfw3dll.lib;glfw3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>cpplint.py --output=vs7 Backend.cpp</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <PostBuildEvent>
-      <Message>Linting</Message>
+      <Message>
+      </Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -93,10 +95,12 @@
       <AdditionalDependencies>lualib.lib;physfs.lib;zlib.lib;zdll.lib;libpng.lib;glew32.lib;glew32s.lib;opengl32.lib;glu32.lib;glfw3dll.lib;glfw3.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>cpplint.py --output=vs7 Backend.cpp</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <PostBuildEvent>
-      <Message>Linting</Message>
+      <Message>
+      </Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -104,7 +108,9 @@
     <ClCompile Include="Contouring.cpp" />
     <ClCompile Include="essentials.cpp" />
     <ClCompile Include="FBO.cpp" />
+    <ClCompile Include="LuaBindings.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Model.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="Shader.cpp" />
@@ -119,6 +125,8 @@
     <ClInclude Include="FBO.h" />
     <ClInclude Include="GL.h" />
     <ClInclude Include="GLM.h" />
+    <ClInclude Include="LuaBindings.h" />
+    <ClInclude Include="Model.h" />
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="Shader.h" />

@@ -1,3 +1,4 @@
+// Copyright [year] <Copyright Owner>
 #ifndef _RESOURCEMANAGER_H_
 #define _RESOURCEMANAGER_H_
 #include "essentials.h"
@@ -10,7 +11,7 @@ private:
     uint64_t unique_id;
 };
 
-bool Startup(void);
+bool Startup(const char *argv);
 void Shutdown(void);
 
 }; // ~namespace

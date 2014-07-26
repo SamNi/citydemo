@@ -1,3 +1,4 @@
+// Copyright [year] <Copyright Owner>
 #ifndef _GLM_H_
 #define _GLM_H_
 

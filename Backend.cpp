@@ -1,4 +1,4 @@
-// Copyright 2014 SamNi PlaceholderLicenseText
+// Copyright [year] <Copyright Owner>
 // Goal: isolate the direct OpenGL calls, enums to the back end
 // Singletons are ugly but I can't think of anything better for this
 #include "./Backend.h"
@@ -8,9 +8,9 @@
 
 namespace BackEnd {
 
-static const char*      DEFAULT_NAME =              "citydemo";
-static const int        DEFAULT_WIDTH =             1600;
-static const int        DEFAULT_HEIGHT =            900;
+static const char*      DEFAULT_NAME =              "nite crew";
+static const int        DEFAULT_WIDTH =             320;
+static const int        DEFAULT_HEIGHT =            180;
 static const int        DEFAULT_XPOS =              100;
 static const int        DEFAULT_YPOS =              50;
 static const int        DEFAULT_FOV =               60;
@@ -29,7 +29,7 @@ float aspect;
 float fov;
 
 GLFWwindow *window;
-
+    
 // Device specifications to be queried once and then never again
 // Stuff that does not change ever unless you buy a new video card
 // Only backend.cpp should know about these
@@ -53,7 +53,7 @@ bool Startup(void) {
     // GLFW boilerplate
     glfwSetErrorCallback(error_callback);
     if (!glfwInit()) {
-        fprintf(stderr, "glewInit failed\n");
+        fprintf(stderr, "glfwInit failed\n");
         return false;
     }
 
@@ -69,6 +69,7 @@ bool Startup(void) {
     glfwSetWindowSizeCallback(window, size_callback);
 
     // GLEW boilerplate
+    glewExperimental = GL_TRUE;
     if (GLEW_OK != glewInit()) {
         fprintf(stderr, "glewInit failed\n");
         return false;
@@ -97,7 +98,7 @@ bool Done(void) {
 void DefaultGLState(void) {
     int i;
 
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glDisable(GL_DEPTH_TEST);
     glBlendFunc(GL_ONE, GL_ZERO);
     glDisable(GL_BLEND);
@@ -110,11 +111,13 @@ void DefaultGLState(void) {
 }
 
 void BackEnd::BeginFrame(void) {
+    static bool firstTime = true;
+    glClearColor(0.2f, 0.2f, 0.2f, 0.2f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    DrawRGBQuad();
 }
 
 void BackEnd::EndFrame(void) {
+    DrawRGBQuad();
     glfwSwapBuffers(window);
     glfwPollEvents();
 }
@@ -133,7 +136,7 @@ static void DrawRGBQuad(void) {
         +1.0f,+1.0f, 0.0f,
     };
     static const GLfloat colors[] = {
-        0.0f, 0.0f, 0.0f, 0.0f,
+        1.0f, 0.0f, 1.0f, 0.0f,
         1.0f, 0.0f, 0.0f, 1.0f,
         0.0f, 1.0f, 0.0f, 1.0f,
         0.0f, 0.0f, 1.0f, 1.0f,
@@ -176,12 +179,12 @@ static void DrawRGBQuad(void) {
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
         glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 0, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
         checkGL();
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
@@ -190,8 +193,8 @@ static void DrawRGBQuad(void) {
         checkGL();
 
         firstTime = false;
-    }
-    glBindVertexArray(vao);
+    } else
+        glBindVertexArray(vao);
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
 

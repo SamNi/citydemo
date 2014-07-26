@@ -1,3 +1,4 @@
+// Copyright [year] <Copyright Owner>
 #include "FBO.h"
 
 static const int            rtWidth = 8;

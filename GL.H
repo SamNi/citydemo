@@ -1,4 +1,4 @@
-// Copyright 2014 SamNi PlaceholderLicenseText
+// Copyright [year] <Copyright Owner>
 #ifndef _GL_H_
 #define _GL_H_
 

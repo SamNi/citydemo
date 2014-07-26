@@ -1,4 +1,6 @@
+// Copyright [year] <Copyright Owner>
 #include "Shader.h"
+#include <physfs/physfs.h>
 
 #define SHADER_DIR                  "shaders"
 const char *names[] = { 
@@ -23,7 +25,7 @@ private:
     GLuint computeShaderID;
 };
 
-
+static ShaderManager TheShaderManager;
 
 static GLuint loadShader(std::string path, GLuint shaderType) {
     GLuint shaderHandle;
@@ -60,8 +62,6 @@ ShaderProgram::ShaderProgram(std::string frag, std::string vert) {
     glAttachShader(programID, fragmentShaderID);
     glAttachShader(programID, vertexShaderID);
     glLinkProgram(programID);
-
-    GLint err;
 }
 
 ShaderProgram::~ShaderProgram(void) {
@@ -124,3 +124,24 @@ ShaderManager::~ShaderManager(void) {
         delete (it->second);
     }
 }
+
+#include "./LuaBindings.h"
+namespace Lua {
+
+int L_LoadShader(lua_State *L) {
+    if (lua_gettop(L) != 3)
+        luaL_error(L, "Usage: LoadShader(name, frag, vert)");
+    TheShaderManager.load(lua_tostring(L, 1), lua_tostring(L, 2), lua_tostring(L, 3));
+    return 0;
+}
+
+int L_UseShader(lua_State *L) {
+    if (lua_gettop(L) != 1)
+        luaL_error(L, "Usage: LoadShader(name, frag, vert)");
+    const char *arg = lua_tostring(L,1);
+    TheShaderManager.use(arg);
+    return 0;
+}
+
+}  // Lua
+

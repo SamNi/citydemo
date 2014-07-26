@@ -1,7 +1,8 @@
-#ifndef _FBO_H_
-#define _FBO_H_
-#include "essentials.h" 
-#include "GL.h"
+// Copyright [year] <Copyright Owner>
+#ifndef FBO_H_
+#define FBO_H_
+#include "./essentials.h"
+#include "./GL.h"
 
 struct FBO {
     FBO(void);
@@ -15,4 +16,4 @@ struct FBO {
     GLuint vbo, vbo_tex, vao;
 };
 
-#endif // ~_FBO_H_
+#endif  // FBO_H_

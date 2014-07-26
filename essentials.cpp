@@ -1,6 +1,26 @@
+// Copyright [year] <Copyright Owner>
 #include "essentials.h"
 #include "GL.h"
+#include <physfs/physfs.h>
 
+// caller's responsibility to free the returned buf
+char *readFile(const char *fname) {
+    PHYSFS_file *fin = nullptr;
+    PHYSFS_sint64 fileLen;
+    char *buf = nullptr;
+    fin = PHYSFS_openRead(fname);
+
+    if (nullptr == fin)
+        return nullptr;
+
+    fileLen = PHYSFS_fileLength(fin);
+    buf = new char[fileLen+1];
+    PHYSFS_read(fin, buf, 1, fileLen);
+    buf[fileLen] = '\0';            // ~physfs
+    PHYSFS_close(fin);
+    return buf;
+}
+/*
 char *readFile(const char *fname) {
     FILE *fin;
     size_t count;
@@ -21,6 +41,7 @@ char *readFile(const char *fname) {
     ret[count]='\0';
     return ret;
 }
+*/
 
 void checkGL(void) {
 #ifdef _DEBUG

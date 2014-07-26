@@ -1,3 +1,4 @@
+// Copyright [year] <Copyright Owner>
 #include "Contouring.h"
 #include "Tables.h"
 #include "GL.h"

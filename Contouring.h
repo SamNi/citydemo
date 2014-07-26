@@ -1,3 +1,4 @@
+// Copyright [year] <Copyright Owner>
 #ifndef _CONTOURING_H_
 #define _CONTOURING_H_
 #include "essentials.h"

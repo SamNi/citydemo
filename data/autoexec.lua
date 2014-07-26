@@ -1,3 +1,3 @@
-for i = 1,2500 do
-    LoadResource("images/RGBA1024.png")
-end
+LoadShader("ortho2d", "shaders/ortho2d.frag", "shaders/ortho2d.vert");
+UseShader("ortho2d")
+LoadTexture("images/oreimo.png")

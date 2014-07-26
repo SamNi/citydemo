@@ -1,7 +1,8 @@
+// Copyright [year] <Copyright Owner>
 // Represents the state of the world. The M in MVC
 /*
-#ifndef _WORLD_H_
-#define _WORLD_H_
+#ifndef WORLD_H_
+#define WORLD_H_
 #include "essentials.h"
 
 struct World {
@@ -11,5 +12,5 @@ struct World {
     void step(Real dt);
 };
 
-#endif // ~_WORLD_H_
+#endif  // WORLD_H_
 */

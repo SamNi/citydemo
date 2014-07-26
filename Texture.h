@@ -1,3 +1,4 @@
+// Copyright [year] <Copyright Owner>
 #ifndef _TEXTURE_H_
 #define _TEXTURE_H_
 #include "essentials.h"

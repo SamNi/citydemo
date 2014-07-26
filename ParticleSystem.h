@@ -1,3 +1,4 @@
+// Copyright [year] <Copyright Owner>
 #ifndef _PARTICLESYSTEM_H_
 #define _PARTICLESYSTEM_H_
 #include "essentials.h"

@@ -1,3 +1,4 @@
+// Copyright [year] <Copyright Owner>
 #include "ParticleSystem.h"
 #include "GLM.h"
 

@@ -1,3 +1,4 @@
+// Copyright [year] <Copyright Owner>
 #ifndef _ESSENTIALS_H_
 #define _ESSENTIALS_H_
 #include <cstdio>
@@ -26,6 +27,7 @@
 #endif
 
 // forward decls
+// caller's responsibility to free the returned buf
 char *readFile(const char *fname);
 void checkGL(void);
 

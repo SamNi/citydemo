@@ -1,3 +1,4 @@
+// Copyright [year] <Copyright Owner>
 #ifndef _TABLES_H_
 #define _TABLES_H_
 
