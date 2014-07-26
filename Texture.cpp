@@ -80,6 +80,22 @@ Texture::Texture(const char *fname, bool filtered, bool mipmapped) : texID(0), b
         MakeCheckerboard();
         break;
     }
+
+    // TODO(SamNi): Stupid inefficient naive hack to reverse image data to a form
+    // OGL likes. Please replace with something sane.
+    {
+        int i;
+        int w = Texture::img.w;
+        int h = Texture::img.h;
+        int rowSize = sizeof(uint8_t)*w*nComponents;
+        uint8_t *tmpbuf = new uint8_t[rowSize];
+        for (i = 0;i < (h>>1);++i) {
+            memcpy(tmpbuf, &Texture::img.pixels[i*rowSize], rowSize);
+            memcpy(&Texture::img.pixels[i*rowSize], &Texture::img.pixels[(h - i - 1)*rowSize], rowSize);
+            memcpy(&Texture::img.pixels[(h - i - 1)*rowSize], tmpbuf, rowSize);
+        };
+        delete[] tmpbuf;
+    }
     UpGL();
 
     DeAlloc();
