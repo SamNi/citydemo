@@ -8,9 +8,9 @@
 
 namespace BackEnd {
 
-static const char*      DEFAULT_NAME =              "nite crew";
-static const int        DEFAULT_WIDTH =             320;
-static const int        DEFAULT_HEIGHT =            180;
+static const char*      DEFAULT_NAME =              "citydemo";
+static const int        DEFAULT_WIDTH =             1600;
+static const int        DEFAULT_HEIGHT =            900;
 static const int        DEFAULT_XPOS =              100;
 static const int        DEFAULT_YPOS =              50;
 static const int        DEFAULT_FOV =               60;
@@ -111,12 +111,44 @@ void DefaultGLState(void) {
 }
 
 void BackEnd::BeginFrame(void) {
-    static bool firstTime = true;
-    glClearColor(0.2f, 0.2f, 0.2f, 0.2f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void BackEnd::EndFrame(void) {
+    static bool firstTime = true;
+    static GLuint fbo_id, texID;
+    static GLint old_texID;
+    checkGL();
+    if (firstTime) {
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_texID);
+        checkGL();
+        glGenTextures(1, &texID);
+        glBindTexture(GL_TEXTURE_2D, texID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 8, 8, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        checkGL();
+
+        glGenFramebuffers(1, &fbo_id);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
+        glFramebufferParameteri(GL_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_WIDTH, 8);
+        glFramebufferParameteri(GL_FRAMEBUFFER, GL_FRAMEBUFFER_DEFAULT_HEIGHT, 8);
+        //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texID, 0);
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texID, 0);
+        checkGL();
+
+        firstTime = false;
+    }
+    checkGL();
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);  // rendering to offscreen buffer 
+    glBindTexture(GL_TEXTURE_2D, old_texID);    // with the image we read
+    glClear(GL_COLOR_BUFFER_BIT);               // Clear it first
+    glDisable(GL_DEPTH_TEST);
+    glViewport(0,0,8,8);
+    DrawRGBQuad();                              // draw the quad
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);       // switch to the visible render buffer
+    glBindTexture(GL_TEXTURE_2D, texID);
+    glViewport(0,0,1600,900);
     DrawRGBQuad();
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -136,10 +168,10 @@ static void DrawRGBQuad(void) {
         +1.0f,+1.0f, 0.0f,
     };
     static const GLfloat colors[] = {
-        1.0f, 0.0f, 1.0f, 0.0f,
-        1.0f, 0.0f, 0.0f, 1.0f,
-        0.0f, 1.0f, 0.0f, 1.0f,
-        0.0f, 0.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f,
+        1.0f, 1.0f, 1.0f, 1.0f,
     };
     static const GLfloat texCoords[] = {
         0.0f,0.0f, 
