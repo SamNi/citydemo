@@ -4,16 +4,20 @@
 #include "essentials.h"
 #include "GL.H"
 
-struct ShaderProgram;
+class ShaderManager {
+public:
+    static uint32_t     Load(std::string name, std::string frag, std::string vertex);
+    static void         Bind(std::string name);
+    static uint32_t     GetProgID(std::string name);
+    static void         Shutdown(void);
+private:
+    class Impl;
+    std::unique_ptr<Impl> mImpl;
 
-struct ShaderManager {
-    void load(std::string name, std::string frag, std::string vertex);
-    void load(void);
-    void use(std::string name);
-    GLuint getProgID(const std::string& name);
+    // non copyable, singular
+    ShaderManager(const ShaderManager& rhs);
     ~ShaderManager(void);
-
-    std::map<std::string, ShaderProgram*> progs;
+    const ShaderManager& operator=(const ShaderManager& rhs);
 };
 
-#endif // ~_SHADER_H_
+#endif // ~_SHADER_H_   

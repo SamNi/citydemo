@@ -2,30 +2,15 @@
 #include "Shader.h"
 #include <physfs/physfs.h>
 
-#define SHADER_DIR                  "shaders"
-const char *names[] = { 
-    "standard",
-    "diffuse",
-    "white",
-    "textured",
-    "passthrough",
-    "2dortho",
-    NULL };
-
 struct ShaderProgram {
     ShaderProgram(std::string frag, std::string vertex);
     ~ShaderProgram(void);
     void Bind(void) const;
-    GLuint getProgID(void) const;
 
-private:
     GLuint programID;
     GLuint vertexShaderID;
     GLuint fragmentShaderID;
-    GLuint computeShaderID;
 };
-
-static ShaderManager TheShaderManager;
 
 static GLuint loadShader(std::string path, GLuint shaderType) {
     GLuint shaderHandle;
@@ -39,7 +24,7 @@ static GLuint loadShader(std::string path, GLuint shaderType) {
 
     int params = -1;
     glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &params);
-    if(GL_TRUE!=params) {
+    if (GL_TRUE!=params) {
         static char tmp[GL_INFO_LOG_LENGTH];
         GLsizei len;
 
@@ -58,10 +43,11 @@ ShaderProgram::ShaderProgram(std::string frag, std::string vert) {
     vertexShaderID = loadShader(vert, GL_VERTEX_SHADER);
 
     programID = glCreateProgram();
-
+    checkGL();
     glAttachShader(programID, fragmentShaderID);
     glAttachShader(programID, vertexShaderID);
     glLinkProgram(programID);
+    checkGL();
 }
 
 ShaderProgram::~ShaderProgram(void) {
@@ -82,47 +68,43 @@ ShaderProgram::~ShaderProgram(void) {
 void ShaderProgram::Bind(void) const {
     glUseProgram(programID);
 }
+// ----------------------------------
+// ShaderManager
+// ----------------------------------
+#include <unordered_map>
+class ShaderManager::Impl {
+public:
+    static std::unordered_map<std::string, std::shared_ptr<ShaderProgram>> progs;
+};
+std::unordered_map<std::string, std::shared_ptr<ShaderProgram>> ShaderManager::Impl::progs;
 
-GLuint ShaderProgram::getProgID(void) const { return programID; }
-
-void ShaderManager::load(std::string name, std::string frag, std::string vertex) {
-    assert(progs.find(name) == progs.end());
-
-    ShaderProgram *p = new ShaderProgram(frag, vertex);
-    progs[name] = p;
+uint32_t ShaderManager::Load(std::string name, std::string frag, std::string vertex) {
+    auto p = std::shared_ptr<ShaderProgram>(new ShaderProgram(frag, vertex));
+    ShaderManager::Impl::progs.emplace(name, p);
+    checkGL();
+    return p->programID;
 }
 
-void ShaderManager::load(void) {
-    const char **name;
-    int count = 0;
-
-    for (name = names;*name;++name,++count) {
-        fprintf(stderr,"%s\n", *name);
-
-        std::string path = std::string(SHADER_DIR) + std::string(PATH_SEP) + std::string(*name);
-        std::string fragPath = path + std::string(".frag");
-        std::string vertPath = path + std::string(".vert");
-        load(std::string(*name), fragPath, vertPath);
+void ShaderManager::Bind(std::string name) {
+    auto it = ShaderManager::Impl::progs.find(name);
+    if (it == ShaderManager::Impl::progs.end()) {
+        fprintf(stderr, "ShaderManager::Bind nonexistent id %s\n", name.c_str());
+        return;
     }
-    fprintf(stderr,"successfully compiled, linked %d shader program(s)\n", count);
+    it->second->Bind();
 }
 
-void ShaderManager::use(std::string name) {
-    assert(progs.find(name) != progs.end());
-
-    progs[name]->Bind();
-}
-
-GLuint ShaderManager::getProgID(const std::string& name) {
-    assert(progs.find(name) != progs.end());
-    return progs[name]->getProgID();
-}
-
-ShaderManager::~ShaderManager(void) {
-    std::map<std::string, ShaderProgram*>::iterator it;
-    for (it = progs.begin();it != progs.end();++it) {
-        delete (it->second);
+uint32_t ShaderManager::GetProgID(std::string name) {
+    auto it = ShaderManager::Impl::progs.find(name);
+    if (it == ShaderManager::Impl::progs.end()) {
+        fprintf(stderr, "ShaderManager::GetProgID no shader with name %s\n", name.c_str());
+        return 0;
     }
+    return it->second->programID;
+}
+
+void ShaderManager::Shutdown(void) {
+    ShaderManager::Impl::progs.clear();
 }
 
 #include "./LuaBindings.h"
@@ -131,17 +113,21 @@ namespace Lua {
 int L_LoadShader(lua_State *L) {
     if (lua_gettop(L) != 3)
         luaL_error(L, "Usage: LoadShader(name, frag, vert)");
-    TheShaderManager.load(lua_tostring(L, 1), lua_tostring(L, 2), lua_tostring(L, 3));
+    auto name = lua_tostring(L, 1);
+    auto frag = lua_tostring(L, 2);
+    auto vert = lua_tostring(L, 3);
+    ShaderManager::Load(name, frag, vert);
+    checkGL();
     return 0;
 }
 
-int L_UseShader(lua_State *L) {
+int L_BindShader(lua_State *L) {
     if (lua_gettop(L) != 1)
-        luaL_error(L, "Usage: LoadShader(name, frag, vert)");
-    const char *arg = lua_tostring(L,1);
-    TheShaderManager.use(arg);
+        luaL_error(L, "Usage: BindShader(textureID)");
+    auto textureID = lua_tostring(L,1);
+    ShaderManager::Bind(textureID);
+    checkGL();
     return 0;
 }
 
 }  // Lua
-
