@@ -47,6 +47,18 @@ void _log(LogLevel l, const char *srcFilePath, int lineNo, const char *funcName,
     fflush(stdout);
 }
 
+// png images are stored in the opposite direction than OpenGL expects
+void imgflip(int w, int h, int nComponents, uint8_t *pixels) {
+    int rowSize = sizeof(uint8_t)*w*nComponents;
+    uint8_t *tmp = new uint8_t[rowSize];
+    int i;
+    for (i = 0;i < (h>>1);++i) {
+        memcpy(tmp, &pixels[i*rowSize], rowSize);
+        memcpy(&pixels[i*rowSize], &pixels[(h - i - 1)*rowSize], rowSize);
+        memcpy(&pixels[(h - i - 1)*rowSize], tmp, rowSize);
+    }
+}
+
 void checkGL(void) {
 #ifdef _DEBUG
     GLuint err = glGetError();

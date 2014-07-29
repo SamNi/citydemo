@@ -42,6 +42,7 @@ enum LogLevel {
 char *readFile(const char *fname);
 void _log(LogLevel l, const char *srcFile, int lineNo, const char *funcName, const char *msg, ...);
 void checkGL(void);
+void imgflip(int w, int h, int nComponents, uint8_t *pixels);
 
 typedef float Real;
 
