@@ -20,34 +20,39 @@ char *readFile(const char *fname) {
     PHYSFS_close(fin);
     return buf;
 }
-/*
-char *readFile(const char *fname) {
-    FILE *fin;
-    size_t count;
-    char *ret;
 
-    fin = fopen(fname, "rb");
-    if (!fin)
-        return NULL;
-    fseek(fin, 0, SEEK_END);
-    count = ftell(fin);
-    rewind(fin);
-    ret = new char[count+1];
-    if(count != fread(ret, sizeof(char), count, fin)) {
-        fprintf(stderr, "Error reading %s\n", fname);
-        delete[] ret;
-        return NULL;
-    }
-    ret[count]='\0';
-    return ret;
+void _log(LogLevel l, const char *srcFilePath, int lineNo, const char *funcName, const char *msg, ... ) {
+    static LogLevel log_threshold = LOG_TRACE;
+    static const char *levelMnemonic[] = { "!", "W", "I", "V", "T" };
+    static char dateBuf[60];
+    static char filenameBuf[256];
+    static char extensionBuf[256];
+
+    static time_t rightNow;
+    static tm timeStruct;
+    rightNow = time(NULL);
+    timeStruct = (*localtime(&rightNow));
+    strftime(dateBuf, 60, "%Y-%m-%d %H:%M:%S", &timeStruct);
+
+    va_list args;
+    char msgBuf[4096];
+    va_start(args, msg);
+    vsprintf(msgBuf, msg, args);
+    va_end(args);
+
+    _splitpath(srcFilePath, nullptr, nullptr, filenameBuf, extensionBuf);
+    if (l <= log_threshold)
+        printf("%s;%s%s:%d;%s;%s; %s\n", levelMnemonic[l], filenameBuf, extensionBuf, lineNo, funcName, dateBuf, msgBuf);
+
+    fflush(stdout);
 }
-*/
 
 void checkGL(void) {
 #ifdef _DEBUG
     GLuint err = glGetError();
     if (GL_NO_ERROR!=err) {
-        fprintf(stderr, "%s\n", gluErrorString(err));
+        LOG(LOG_CRITICAL, "%s\n", gluErrorString(err));
+        assert(!"alsjlkasjgk");
         exit(EXIT_FAILURE);
     }
 #endif

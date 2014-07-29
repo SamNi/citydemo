@@ -56,7 +56,7 @@ void ParticleSystem::LoadComputeShader(const char *fname, GLuint& progID, GLuint
 
         glGetShaderInfoLog(shadID, GL_INFO_LOG_LENGTH-1, &len, tmp);
         tmp[len]='\0';
-        fprintf(stderr, "%s\n", tmp);
+        LOG(LOG_CRITICAL, "%s\n", tmp);
         exit(EXIT_FAILURE);
     }
 
@@ -70,7 +70,7 @@ void ParticleSystem::LoadComputeShader(const char *fname, GLuint& progID, GLuint
 
         glGetProgramInfoLog(progID, GL_INFO_LOG_LENGTH-1, &len, tmp);
         tmp[len]='\0';
-        fprintf(stderr, "%s\n", tmp);
+        LOG(LOG_CRITICAL, "%s\n", tmp);
         exit(EXIT_FAILURE);
     }
 

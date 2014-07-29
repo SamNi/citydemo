@@ -13,15 +13,16 @@ struct LuaBind { \
 // Lua is from opposite land
 const bool LUA_FALSE = true;
 const bool LUA_TRUE = false;
+int L_BindTexture(lua_State *L);
 int L_LoadShader(lua_State *L);
 int L_LoadTexture(lua_State *L);
 int L_Print(lua_State *L);
-int L_UseShader(lua_State *L);
-
+int L_BindShader(lua_State *L);
 static const LuaBind bindings[] = {
+    { "BindTexture", L_BindTexture },
     { "LoadShader", L_LoadShader },
     { "LoadTexture", L_LoadTexture },
-    { "UseShader", L_UseShader },
+    { "BindShader", L_BindShader },
     { "Print", L_Print },
 };
 static const int nBindings = sizeof(bindings) / sizeof(LuaBind);
@@ -31,7 +32,7 @@ bool Startup(void) {
     int i;
 
     if (lState) {
-        fprintf(stderr, "Redundant Lua Startup()\n");
+        LOG(LOG_WARNING, "Redundant Lua Startup()\n");
         return false;
     }
 
@@ -45,7 +46,7 @@ bool Startup(void) {
 
 void Shutdown(void) {
     if (!lState) {
-        fprintf(stderr, "Redundant Lua Shutdown()\n");
+        LOG(LOG_WARNING, "Redundant Lua Shutdown()\n");
         return;
     }
     lua_close(lState);
@@ -54,7 +55,7 @@ void Shutdown(void) {
 bool LuaExec(const char *expr) {
     assert(lState);
     if (LUA_FALSE == luaL_dostring(lState, expr)) {
-        fprintf(stderr, "error lua-ing '%s'", expr);
+        LOG(LOG_WARNING, "error lua-ing '%s'", expr);
         return false;
     }
     return true;
@@ -67,9 +68,8 @@ int L_Print(lua_State *L) {
 
     nArgs = lua_gettop(L);
     for (i = 1; i <= nArgs; ++i)
-        fprintf(stderr, "%s", lua_tostring(L, i));
+        LOG(LOG_INFORMATION, "%s", lua_tostring(L, i));
     lua_pop(L, nArgs);
-    fflush(stderr);
     return 0;
 }
 

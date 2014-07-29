@@ -1,35 +1,28 @@
-// Copyright [year] <Copyright Owner>
+    // Copyright [year] <Copyright Owner>
 // Goal: isolate the direct OpenGL calls, enums to the back end
 // Singletons are ugly but I can't think of anything better for this
 #include "./Backend.h"
 #include "./GL.h"
 #include "./GLM.h"
+#include "Shader.h"
 #pragma warning(disable : 4800)
 
-namespace BackEnd {
+namespace Backend {
 
-static const char*      DEFAULT_NAME =              "city demo";
-static const int        DEFAULT_WIDTH =             320;
-static const int        DEFAULT_HEIGHT =            240;
+static const char*      DEFAULT_NAME =              "citydemo";
+static const int        DEFAULT_WIDTH =             1600;
+static const int        DEFAULT_HEIGHT =            900;
 static const int        DEFAULT_XPOS =              100;
 static const int        DEFAULT_YPOS =              50;
 static const int        DEFAULT_FOV =               60;
+static const int        OFFSCREEN_WIDTH =           64;
+static const int        OFFSCREEN_HEIGHT =          64;
 
 static void DisableBlending(void);
-static void DrawRGBQuad(void);
+static void DrawFullscreenQuad(void);
 static void EnableAdditiveBlending(void);
 static void EnableBlending(void);
-static void error_callback(int err, const char *descr);
-static void key_callback(GLFWwindow *window, int key,
-                         int scancode, int action, int mods);
-static void size_callback(GLFWwindow *window, int width, int height);
 
-int width, height;
-float aspect;
-float fov;
-
-GLFWwindow *window;
-    
 // Device specifications to be queried once and then never again
 // Stuff that does not change ever unless you buy a new video card
 // Only backend.cpp should know about these
@@ -45,41 +38,9 @@ static int nMaxDrawBuffers;
 // ...
 
 bool Startup(void) {
-    width = DEFAULT_WIDTH;
-    height = DEFAULT_HEIGHT;
-    aspect = static_cast<float>(DEFAULT_WIDTH)/DEFAULT_HEIGHT;
-    fov = static_cast<float>(DEFAULT_FOV);
-
-    // GLFW boilerplate
-    glfwSetErrorCallback(error_callback);
-    if (!glfwInit()) {
-        fprintf(stderr, "glfwInit failed\n");
-        return false;
-    }
-
-    window = glfwCreateWindow(width, height,
-        DEFAULT_NAME, nullptr, nullptr);
-    if (!window) {
-        glfwTerminate();
-        return false;
-    }
-    glfwSetWindowPos(window, DEFAULT_XPOS, DEFAULT_YPOS);
-    glfwMakeContextCurrent(window);
-    glfwSetKeyCallback(window, key_callback);
-    glfwSetWindowSizeCallback(window, size_callback);
-
-    // GLEW boilerplate
-    glewExperimental = GL_TRUE;
-    if (GLEW_OK != glewInit()) {
-        fprintf(stderr, "glewInit failed\n");
-        return false;
-    }
-
     // Query and cache misc. device parameters
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nMaxVertexAttribs);
     glGetIntegerv(GL_MAX_DRAW_BUFFERS, &nMaxDrawBuffers);
-
-    DefaultGLState();
 
     // Allocate things, prepare VBOs,*/
 
@@ -87,76 +48,60 @@ bool Startup(void) {
 }
 
 void Shutdown(void) {
-    glfwDestroyWindow(window);
-    glfwTerminate();
 }
 
-bool Done(void) {
-    return static_cast<bool>(glfwWindowShouldClose(window));
-}
+static GLuint fbo_id, fbTexID;
+static GLint old_texID;
 
-void DefaultGLState(void) {
-    int i;
-
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glDisable(GL_DEPTH_TEST);
-    glBlendFunc(GL_ONE, GL_ZERO);
-    glDisable(GL_BLEND);
-    glDisable(GL_MULTISAMPLE);
-    glDisable(GL_LINE_SMOOTH);
-    glDisable(GL_POLYGON_SMOOTH);
-
-    for (i = 0; i < nMaxVertexAttribs; ++i)
-        glDisableVertexAttribArray(0);
-}
-
-void BackEnd::BeginFrame(void) {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
-void BackEnd::EndFrame(void) {
-    static bool firstTime = true;
-    static GLuint fbo_id, texID;
-    static GLint old_texID;
-    checkGL();
-    const int FBO_WIDTH = 128;
-    const int FBO_HEIGHT = 128;
+void Backend::BeginFrame(void) {
     /*
-    if (firstTime) {
-        glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_texID);
-        checkGL();
-        glGenTextures(1, &texID);
-        glBindTexture(GL_TEXTURE_2D, texID);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, FBO_WIDTH, FBO_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-        checkGL();
+    if (offscreenRender) {
+        static bool firstTime = true;
+        if (firstTime) {
+            glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_texID);
+            checkGL();
+            glGenTextures(1, &fbTexID);
+            glBindTexture(GL_TEXTURE_2D, fbTexID);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+            checkGL();
 
-        glGenFramebuffers(1, &fbo_id);
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texID, 0);
-        checkGL();
+            glGenFramebuffers(1, &fbo_id);
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, fbTexID, 0);
+            checkGL();
 
-        firstTime = false;
-    }
-    checkGL();
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);  // rendering to offscreen buffer 
-    glBindTexture(GL_TEXTURE_2D, old_texID);    // with the image we read
-    glClear(GL_COLOR_BUFFER_BIT);               // Clear it first
-    glViewport(0,0,FBO_WIDTH,FBO_HEIGHT);
-    DrawRGBQuad();                              // draw the quad
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);       // switch to the visible render buffer
-    glBindTexture(GL_TEXTURE_2D, texID);
-    glViewport(0,0,1600,900);*/
-    DrawRGBQuad();
-    glfwSwapBuffers(window);
-    glfwPollEvents();
+            firstTime = false;
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);  // rendering to offscreen buffer 
+        glBindTexture(GL_TEXTURE_2D, old_texID);    // with the image we read
+        glViewport(0, 0, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
+    }*/
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+
+    // ... scene draws go in between the conclusion of BeginFrame()
+    // and the prologue of EndFrame()
+    //TheShaderManager.use("ortho2d");
+    DrawFullscreenQuad();
+}
+
+void Backend::EndFrame(void) {
+    /*
+    if (offscreenRender) {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);       // switch to the visible render buffer
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glBindTexture(GL_TEXTURE_2D, fbTexID);
+        glViewport(0,0,DEFAULT_WIDTH,DEFAULT_HEIGHT);
+        DrawFullscreenQuad();
+    }*/
 }
 
 // private
 
 // debugging util. get something on screen for me to test
-static void DrawRGBQuad(void) {
+static void DrawFullscreenQuad(void) {
     static bool firstTime = true;
     // these are all in UpLeft, DownLeft, DownRight, UpRight order
     static const GLfloat points[] = {
@@ -243,7 +188,7 @@ static void EnableAdditiveBlending(void) {
 
 // GLFW callbacks
 static void error_callback(int err, const char *descr) {
-    fprintf(stderr, descr);
+    LOG(LOG_CRITICAL, descr);
 }
 static void key_callback(GLFWwindow *window, int key, int scancode,
                          int action, int mods) {
@@ -258,10 +203,11 @@ static void key_callback(GLFWwindow *window, int key, int scancode,
     }
 }
 static void size_callback(GLFWwindow *window, int w, int h) {
+    Resize(w, h);
+}
+
+void Resize(int w, int h) {
     glViewport(0, 0, w, h);
-    width = w;
-    height = h;
-    aspect = static_cast<float>(w)/h;
 }
 
 

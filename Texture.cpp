@@ -10,6 +10,52 @@
 #include <png.h>
 #include <physfs/physfs.h>
 
+// Image : API-independent
+// Texture : Everything needed to function with OpenGL + the associated image
+
+enum ImageFormat {
+    RGB,
+    RGBA,
+    GRAYSCALE
+};
+
+struct Image {
+    int w, h;
+    uint8_t *pixels;
+    ImageFormat fmt;
+};
+
+struct Texture {
+    Texture(void);
+    Texture(int w, int h);
+    Texture(const char *fname, bool filtered = true, bool mipmapped = true);
+    ~Texture(void);
+
+    void Bind(void) const;
+    void Refresh(void);
+
+    uint8_t *getPixels(void) const;
+    GLuint getTexID(void) const;
+    const char *getName(void) const;
+    size_t getSizeInBytes(void) const;
+
+    int nComponents;
+    std::string path;
+    GLuint texID;
+    GLuint sizedFormat, baseFormat;
+    bool bFilter;
+    bool bUseMipmaps;
+
+    Image img;
+
+private:
+    bool Alloc(int nbytes);
+    bool Alloc(int w, int h);
+    void DeAlloc(void);
+    void UpGL();
+    void MakeCheckerboard(void);
+};
+
 Texture::Texture(void) : texID(0), bFilter(true), bUseMipmaps(false) {
     img.w = 8;
     img.h = 8;
@@ -76,7 +122,7 @@ Texture::Texture(const char *fname, bool filtered, bool mipmapped) : texID(0), b
         nComponents = 4;
         break;
     default:
-        fprintf(stderr, "Unsupported format\n");
+        LOG(LOG_WARNING, "Unsupported format\n");
         MakeCheckerboard();
         break;
     }
@@ -109,7 +155,7 @@ img_err:
     delete[] buf;
     if (fin)
         PHYSFS_close(fin);
-    fprintf(stderr, "couldn't read %s\n", fname);
+    LOG(LOG_WARNING, "couldn't read %s\n", fname);
     MakeCheckerboard();
     path = path + std::string("COULD NOT READ");
     return;
@@ -211,7 +257,7 @@ bool Texture::Alloc(int nbytes) {
     img.pixels = new uint8_t[nbytes];
     assert(img.pixels);
     if (!img.pixels) {
-        fprintf(stderr, "Texture::Alloc failed (%d bytes)\n", nbytes);
+        LOG(LOG_CRITICAL, "Texture::Alloc failed (%d bytes)\n", nbytes);
         return false;
     }
     return true;
@@ -262,13 +308,56 @@ void Texture::MakeCheckerboard(void) {
     UpGL();
 }
 
+// ----------------------------------
+// TextureManager
+// ----------------------------------
+#include <unordered_map>
+#include <unordered_set>
+
+std::unordered_map<uint32_t, Texture> textures;
+uint32_t textureIDcount = 10000;
+
+uint32_t TextureManager::Load(const char *path) {
+    textures.emplace(textureIDcount, path);
+    return textureIDcount++;
+}
+
+void TextureManager::Bind(uint32_t textureID) {
+    auto it = textures.find(textureID);
+    it = textures.find(textureID);
+    if (it == textures.end()) {
+        LOG(LOG_WARNING, "nonexistent texture bound with id %ud\n", textureID);
+        return;
+    }
+    it->second.Bind();
+}
+
+void TextureManager::Delete(uint32_t textureID) {
+    auto it = textures.find(textureID);
+    if (it == textures.end()) {
+        LOG(LOG_WARNING, "nonexistent texture delete with id %ud\n", textureID);
+        return;
+    }
+    textures.erase(it);
+}
+
 #include "./LuaBindings.h"
 namespace Lua {
-int L_LoadTexture(Lua::lua_State *L) {
+int L_LoadTexture(lua_State *L) {
     if (lua_gettop(L) != 1)
         luaL_error(L, "Bad LoadTexture() call");
-    Texture *t = new Texture(lua_tostring(L, 1));
-    t->Bind();
+    auto arg1 = lua_tostring(L, 1);
+    auto texID = TextureManager::Load(arg1);
+    lua_pop(L, 1);
+    lua_pushinteger(L, texID);
+    return 1;
+}
+int L_BindTexture(lua_State *L) {
+    if (lua_gettop(L) != 1)
+        luaL_error(L, "Bad BindTexture() call");
+    auto textureID = lua_tointeger(L, 1);
+    TextureManager::Bind(textureID);
     return 0;
 }
+
 }

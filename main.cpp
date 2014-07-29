@@ -1,13 +1,11 @@
 // Copyright [year] <Copyright Owner>
 #include "./citydemo.h"
-#include "./LuaBindings.h"
-
 
 int main(int argc, char *argv[]) {
-    int i;
-    // There's a specific order that these need
-    // to be started up
-    if (!BackEnd::Startup()) {
+    Application app(argc, argv, "citydemo");
+    return app.Run();
+    /*
+    if (!Backend::Startup()) {
         fprintf(stderr, "BackEnd::Startup\n");
         exit(EXIT_FAILURE);
     }
@@ -103,7 +101,8 @@ int main(int argc, char *argv[]) {
 
     std::list<Texture *>::const_iterator it = textures.begin();
     checkGL();*/
-    while (!BackEnd::Done()) {
+/*
+    while (!Backend::Done()) {
         // vg.Draw();
         // glUseProgram(shMan.getProgID("white"));
         // ps.Draw();
@@ -113,7 +112,8 @@ int main(int argc, char *argv[]) {
         modelView = glm::lookAt(glm::vec3(3,3,3), glm::vec3(0,0,0), glm::vec3(0,1,0))*glm::rotate(rotAngle, glm::vec3(0,1,0));
         rotAngle += 0.025f;
         */
-        BackEnd::BeginFrame();
+    /*
+        Backend::BeginFrame();
         glBindTexture(GL_TEXTURE_2D, 1);
         /*
         glClear(GL_COLOR_BUFFER_BIT);
@@ -130,11 +130,12 @@ int main(int argc, char *argv[]) {
         glUniformMatrix4fv(glGetUniformLocation(location, "modelView"), 1, GL_FALSE, glm::value_ptr(modelView));
         DrawQuad();
         */
-        BackEnd::EndFrame();
+    /*
+        Backend::EndFrame();
     }
     Manager::Shutdown();
     Lua::Shutdown();
-    BackEnd::Shutdown();
-
+    Backend::Shutdown();
+    */
     return EXIT_SUCCESS;
 }

@@ -30,7 +30,7 @@ static GLuint loadShader(std::string path, GLuint shaderType) {
 
         glGetShaderInfoLog(shaderHandle, GL_INFO_LOG_LENGTH-1, &len, tmp);
         tmp[len]='\0';
-        fprintf(stderr, "%s\n%s\n", path.c_str(), tmp);
+        LOG(LOG_CRITICAL, "%s\n%s\n", path.c_str(), tmp);
         exit(EXIT_FAILURE);
     }
 
@@ -88,7 +88,7 @@ uint32_t ShaderManager::Load(std::string name, std::string frag, std::string ver
 void ShaderManager::Bind(std::string name) {
     auto it = ShaderManager::Impl::progs.find(name);
     if (it == ShaderManager::Impl::progs.end()) {
-        fprintf(stderr, "ShaderManager::Bind nonexistent id %s\n", name.c_str());
+        LOG(LOG_WARNING, "ShaderManager::Bind nonexistent id %s\n", name.c_str());
         return;
     }
     it->second->Bind();
@@ -97,7 +97,7 @@ void ShaderManager::Bind(std::string name) {
 uint32_t ShaderManager::GetProgID(std::string name) {
     auto it = ShaderManager::Impl::progs.find(name);
     if (it == ShaderManager::Impl::progs.end()) {
-        fprintf(stderr, "ShaderManager::GetProgID no shader with name %s\n", name.c_str());
+        LOG(LOG_WARNING, "ShaderManager::GetProgID no shader with name %s\n", name.c_str());
         return 0;
     }
     return it->second->programID;

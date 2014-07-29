@@ -33,9 +33,6 @@
     <ClCompile Include="Contouring.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FBO.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Backend.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -45,10 +42,13 @@
     <ClCompile Include="LuaBindings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Model.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="Application.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Frontend.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -83,9 +83,6 @@
     <ClInclude Include="Tables.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FBO.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Backend.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -95,7 +92,10 @@
     <ClInclude Include="LuaBindings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Model.h">
+    <ClInclude Include="Application.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Frontend.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

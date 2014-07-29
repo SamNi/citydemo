@@ -2,7 +2,7 @@
 #ifndef _BACKEND_H_
 #define _BACKEND_H_
 #include "essentials.h"
-namespace BackEnd {
+namespace Backend {
 
 // Think about:
 // what kind of low level commands might my backend render queue provide?
@@ -20,12 +20,10 @@ namespace BackEnd {
 //      and if so, what?
 
 bool Startup(void);
-void Shutdown(void);
-bool Done(void);
-
 void BeginFrame(void);
 void EndFrame(void);
+void Shutdown(void);
+void Resize(int w, int h);
 
-void DefaultGLState(void);
 }
 #endif // ~_BACKEND_H_

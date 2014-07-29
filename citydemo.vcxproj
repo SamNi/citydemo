@@ -104,13 +104,13 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Application.cpp" />
     <ClCompile Include="Backend.cpp" />
     <ClCompile Include="Contouring.cpp" />
     <ClCompile Include="essentials.cpp" />
-    <ClCompile Include="FBO.cpp" />
+    <ClCompile Include="Frontend.cpp" />
     <ClCompile Include="LuaBindings.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Model.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="Shader.cpp" />
@@ -118,15 +118,15 @@
     <ClCompile Include="World.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Application.h" />
     <ClInclude Include="Backend.h" />
     <ClInclude Include="citydemo.h" />
     <ClInclude Include="Contouring.h" />
     <ClInclude Include="essentials.h" />
-    <ClInclude Include="FBO.h" />
+    <ClInclude Include="Frontend.h" />
     <ClInclude Include="GL.h" />
     <ClInclude Include="GLM.h" />
     <ClInclude Include="LuaBindings.h" />
-    <ClInclude Include="Model.h" />
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="Shader.h" />
