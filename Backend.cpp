@@ -18,6 +18,9 @@ static const int        DEFAULT_FOV =               60;
 static const int        OFFSCREEN_WIDTH =           64;
 static const int        OFFSCREEN_HEIGHT =          64;
 
+static int              current_screen_width =      DEFAULT_WIDTH;
+static int              current_screen_height =     DEFAULT_HEIGHT;
+
 static void DisableBlending(void);
 static void DrawFullscreenQuad(void);
 static void EnableAdditiveBlending(void);
@@ -208,7 +211,38 @@ static void size_callback(GLFWwindow *window, int w, int h) {
 
 void Resize(int w, int h) {
     glViewport(0, 0, w, h);
+    current_screen_width = w;
+    current_screen_height = h;
 }
 
+#include <png.h>
+
+static uint16_t screenCounter = 0;
+
+void Screenshot(void) {
+    FILE *fout;
+    uint8_t *buf;
+    int nBytes;
+    png_image image;
+    static char filename[512];
+    sprintf(filename, "screenshot%05u.png", screenCounter++);
+
+    LOG(LOG_INFORMATION, "Screenshot %dx%d to %s", current_screen_width, current_screen_height, filename);
+
+    nBytes = current_screen_width*current_screen_height*4*sizeof(uint8_t);
+    buf = new uint8_t[nBytes];
+
+    glReadPixels(0, 0, current_screen_width, current_screen_height, GL_RGBA, GL_UNSIGNED_BYTE, buf);
+    memset(&image, 0, sizeof(image));
+    image.width = current_screen_width;
+    image.height = current_screen_height;
+    image.version = PNG_IMAGE_VERSION;
+    image.format = PNG_FORMAT_RGBA;
+
+    if ( !png_image_write_to_file(&image, filename, 0, (void*)buf, 0, nullptr) )
+        LOG(LOG_WARNING, "Failed to write screenshot to %s", filename);
+
+    delete[] buf;
+}
 
 } // ~namespace

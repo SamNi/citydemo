@@ -24,6 +24,7 @@ void BeginFrame(void);
 void EndFrame(void);
 void Shutdown(void);
 void Resize(int w, int h);
+void Screenshot(void);
 
 }
 #endif // ~_BACKEND_H_
