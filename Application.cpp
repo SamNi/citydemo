@@ -1,12 +1,11 @@
 #include "./citydemo.h"
 #include "./LuaBindings.h"
 
+// TODO(SamNi): duplicate values defined here and in Backend.cpp, fix
 int screen_width =              1600;
 int screen_height =             900;
 int screen_pos_x =              100;
 int screen_pos_y =              50;
-int offscreen_width =           256;
-int offscreen_height =          256;
 float aspect_ratio =            static_cast<float>(screen_width/screen_height);
 float fov =                     60.0f;
 const char *appName =           nullptr;  // set by command line
@@ -62,7 +61,7 @@ bool Application::Startup(void) {
         LOG(LOG_CRITICAL, "glewInit failed\n");
     }
 
-    if (!Backend::Startup()) {
+    if (!Backend::Startup(screen_width, screen_height)) {
         LOG(LOG_CRITICAL, "BackEnd::Startup\n");
         exit(EXIT_FAILURE);
     }
@@ -94,6 +93,7 @@ void Application::Render(void) {
 }
 void Application::Shutdown(void) {
     ShaderManager::Shutdown();
+    Backend::Shutdown();
     glfwDestroyWindow(window);
     glfwTerminate();
 }
@@ -105,13 +105,18 @@ static void size_callback(GLFWwindow *window, int w, int h) {
     screen_height = h;
     aspect_ratio = static_cast<float>(w)/h;
 }
-static void error_callback(int err, const char *descr) { fprintf(stderr, descr); }
+static void error_callback(int err, const char *descr) {
+    LOG(LOG_CRITICAL, "glfw says %s with code %d", descr, err);
+}
 static void key_callback(GLFWwindow *window, int key, int scancode,
                          int action, int mods) {
     if (action != GLFW_PRESS)
         return;
 
     switch (key) {
+    case GLFW_KEY_F12:
+        Backend::Screenshot();
+        break;
     case GLFW_KEY_ESCAPE:
     case GLFW_KEY_Q:
         glfwSetWindowShouldClose(window, GL_TRUE);

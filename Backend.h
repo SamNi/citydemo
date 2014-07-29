@@ -19,7 +19,7 @@ namespace Backend {
 // do I really want to double buf anything?
 //      and if so, what?
 
-bool Startup(void);
+bool Startup(int w, int h);
 void BeginFrame(void);
 void EndFrame(void);
 void Shutdown(void);

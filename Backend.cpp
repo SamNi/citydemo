@@ -5,106 +5,144 @@
 #include "./GL.h"
 #include "./GLM.h"
 #include "Shader.h"
+#include <png.h>            // for writing screenshots
 #pragma warning(disable : 4800)
 
 namespace Backend {
 
-static const char*      DEFAULT_NAME =              "citydemo";
-static const int        DEFAULT_WIDTH =             1600;
-static const int        DEFAULT_HEIGHT =            900;
-static const int        DEFAULT_XPOS =              100;
-static const int        DEFAULT_YPOS =              50;
-static const int        DEFAULT_FOV =               60;
 static const int        OFFSCREEN_WIDTH =           64;
 static const int        OFFSCREEN_HEIGHT =          64;
 
-static int              current_screen_width =      DEFAULT_WIDTH;
-static int              current_screen_height =     DEFAULT_HEIGHT;
+struct Pimpl;
+std::unique_ptr<Pimpl> pBackend = nullptr;
 
-static void DisableBlending(void);
-static void DrawFullscreenQuad(void);
-static void EnableAdditiveBlending(void);
-static void EnableBlending(void);
+struct Pimpl {
+    bool Startup(int w, int h) {
+        current_screen_width = w;
+        current_screen_height = h;
+        screenCounter = 0;
 
-// Device specifications to be queried once and then never again
-// Stuff that does not change ever unless you buy a new video card
-// Only backend.cpp should know about these
-// Add more as the need to know arises
-// TODO: Globals ugly, look into alternatives (thorny SWENG issue)
-static int nMaxVertexAttribs;
-static int nMaxDrawBuffers;
+        // TODO: OpenGL state that changes often (cache these)
+        // consider: various kinds of bindings: textures, shaders, VBOs
+        // performance counters
+        // Query and cache misc. device parameters
+        glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nMaxVertexAttribs);
+        glGetIntegerv(GL_MAX_DRAW_BUFFERS, &nMaxDrawBuffers);
 
+        // Allocate things, prepare VBOs,*/
+        offscreenRender = false;
+        return true;
+    }
+    void Shutdown(void) {
+        // glDelete* calls go here
+    }
+    void BeginFrame(void) {
+        if (offscreenRender) {
+            static bool firstTime = true;
+            if (firstTime) {
+                glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_texID);
+                checkGL();
+                glGenTextures(1, &fbTexID);
+                glBindTexture(GL_TEXTURE_2D, fbTexID);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+                checkGL();
 
-// public
-// TODO: OpenGL state that changes often (cache these)
-// consider: various kinds of bindings: textures, shaders, VBOs
-// ...
+                glGenFramebuffers(1, &fbo_id);
+                glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
+                glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, fbTexID, 0);
+                checkGL();
 
-bool Startup(void) {
-    // Query and cache misc. device parameters
-    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nMaxVertexAttribs);
-    glGetIntegerv(GL_MAX_DRAW_BUFFERS, &nMaxDrawBuffers);
+                firstTime = false;
+            }
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);  // rendering to offscreen buffer 
+            glBindTexture(GL_TEXTURE_2D, old_texID);    // with the image we read
+            glViewport(0, 0, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
+        }
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
 
-    // Allocate things, prepare VBOs,*/
+        // ... scene draws go in between the conclusion of BeginFrame()
+        // and the prologue of EndFrame()
+        //TheShaderManager.use("ortho2d");
+        Pimpl::DrawFullscreenQuad();
+    }
 
-    return true;
+    void EndFrame(void) {
+        if (offscreenRender) {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);       // switch to the visible render buffer
+            glClear(GL_DEPTH_BUFFER_BIT);
+            glBindTexture(GL_TEXTURE_2D, fbTexID);
+            glViewport(0, 0, current_screen_width, current_screen_height);
+            Pimpl::DrawFullscreenQuad();
+        }
+    }
+    void Resize(int w, int h) {
+        glViewport(0, 0, w, h);
+        current_screen_width = w;
+        current_screen_height = h;
+    }
+    void Screenshot(void) {
+        uint8_t *buf = nullptr;
+        int nBytes = 0;
+        png_image image = { NULL };
+        static char filename[512] = { '\0' };
+
+        sprintf(filename, "screenshot%05u.png", screenCounter++);
+
+        LOG(LOG_INFORMATION, "Screenshot %dx%d to %s", current_screen_width, current_screen_height, filename);
+
+        nBytes = current_screen_width*current_screen_height*4*sizeof(uint8_t);
+        buf = new uint8_t[nBytes];
+
+        glReadPixels(0, 0, current_screen_width, current_screen_height, GL_RGBA, GL_UNSIGNED_BYTE, buf);
+        imgflip(current_screen_width, current_screen_height, 4, buf);
+
+        image.width = current_screen_width;
+        image.height = current_screen_height;
+        image.version = PNG_IMAGE_VERSION;
+        image.format = PNG_FORMAT_RGBA;
+
+        if (!png_image_write_to_file(&image, filename, 0, (void*)buf, 0, nullptr))
+            LOG(LOG_WARNING, "Failed to write screenshot to %s", filename);
+
+        delete[] buf;
+    }
+
+    void DisableBlending(void);
+    void DrawFullscreenQuad(void);
+    void EnableAdditiveBlending(void);
+    void EnableBlending(void);
+
+    int current_screen_width;
+    int current_screen_height;
+
+    int nMaxVertexAttribs;
+    int nMaxDrawBuffers;
+
+    GLuint fbo_id, fbTexID;
+    GLint old_texID;
+    bool offscreenRender;
+    uint16_t screenCounter;
+
+};
+
+// exports
+bool Startup(int w, int h) {
+    pBackend = std::unique_ptr<Pimpl>(new Pimpl());
+    return pBackend->Startup(w, h);
 }
 
 void Shutdown(void) {
-}
-
-static GLuint fbo_id, fbTexID;
-static GLint old_texID;
-
-void Backend::BeginFrame(void) {
-    /*
-    if (offscreenRender) {
-        static bool firstTime = true;
-        if (firstTime) {
-            glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_texID);
-            checkGL();
-            glGenTextures(1, &fbTexID);
-            glBindTexture(GL_TEXTURE_2D, fbTexID);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-            checkGL();
-
-            glGenFramebuffers(1, &fbo_id);
-            glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
-            glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, fbTexID, 0);
-            checkGL();
-
-            firstTime = false;
-        }
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);  // rendering to offscreen buffer 
-        glBindTexture(GL_TEXTURE_2D, old_texID);    // with the image we read
-        glViewport(0, 0, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
-    }*/
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-
-    // ... scene draws go in between the conclusion of BeginFrame()
-    // and the prologue of EndFrame()
-    //TheShaderManager.use("ortho2d");
-    DrawFullscreenQuad();
-}
-
-void Backend::EndFrame(void) {
-    /*
-    if (offscreenRender) {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);       // switch to the visible render buffer
-        glClear(GL_DEPTH_BUFFER_BIT);
-        glBindTexture(GL_TEXTURE_2D, fbTexID);
-        glViewport(0,0,DEFAULT_WIDTH,DEFAULT_HEIGHT);
-        DrawFullscreenQuad();
-    }*/
+    pBackend->Shutdown();
+    pBackend.reset(nullptr);
 }
 
 // private
 
 // debugging util. get something on screen for me to test
-static void DrawFullscreenQuad(void) {
+void Pimpl::DrawFullscreenQuad(void) {
     static bool firstTime = true;
     // these are all in UpLeft, DownLeft, DownRight, UpRight order
     static const GLfloat points[] = {
@@ -177,72 +215,21 @@ static void DrawFullscreenQuad(void) {
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
 
-static void EnableBlending(void) {
+void Pimpl::EnableBlending(void) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
-static void DisableBlending(void) {
+void Pimpl::DisableBlending(void) {
     glDisable(GL_BLEND);
 }
-static void EnableAdditiveBlending(void) {
+void Pimpl::EnableAdditiveBlending(void) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 }
 
-// GLFW callbacks
-static void error_callback(int err, const char *descr) {
-    LOG(LOG_CRITICAL, descr);
-}
-static void key_callback(GLFWwindow *window, int key, int scancode,
-                         int action, int mods) {
-    if (action != GLFW_PRESS)
-        return;
-
-    switch (key) {
-    case GLFW_KEY_ESCAPE:
-    case GLFW_KEY_Q:
-        glfwSetWindowShouldClose(window, GL_TRUE);
-        break;
-    }
-}
-static void size_callback(GLFWwindow *window, int w, int h) {
-    Resize(w, h);
-}
-
-void Resize(int w, int h) {
-    glViewport(0, 0, w, h);
-    current_screen_width = w;
-    current_screen_height = h;
-}
-
-#include <png.h>
-
-static uint16_t screenCounter = 0;
-
-void Screenshot(void) {
-    FILE *fout;
-    uint8_t *buf;
-    int nBytes;
-    png_image image;
-    static char filename[512];
-    sprintf(filename, "screenshot%05u.png", screenCounter++);
-
-    LOG(LOG_INFORMATION, "Screenshot %dx%d to %s", current_screen_width, current_screen_height, filename);
-
-    nBytes = current_screen_width*current_screen_height*4*sizeof(uint8_t);
-    buf = new uint8_t[nBytes];
-
-    glReadPixels(0, 0, current_screen_width, current_screen_height, GL_RGBA, GL_UNSIGNED_BYTE, buf);
-    memset(&image, 0, sizeof(image));
-    image.width = current_screen_width;
-    image.height = current_screen_height;
-    image.version = PNG_IMAGE_VERSION;
-    image.format = PNG_FORMAT_RGBA;
-
-    if ( !png_image_write_to_file(&image, filename, 0, (void*)buf, 0, nullptr) )
-        LOG(LOG_WARNING, "Failed to write screenshot to %s", filename);
-
-    delete[] buf;
-}
+void BeginFrame(void) { pBackend->BeginFrame(); }
+void EndFrame(void) { pBackend->EndFrame(); }
+void Resize(int w, int h) { pBackend->Resize(w, h); }
+void Screenshot(void) { pBackend->Screenshot(); }
 
 } // ~namespace
