@@ -37,6 +37,22 @@ static GLuint loadShader(std::string path, GLuint shaderType) {
     return shaderHandle;
 }
 
+inline void Validate(GLuint programID) {
+#ifdef _DEBUG
+    GLint ret, len;
+    static char tmpBuf[GL_INFO_LOG_LENGTH];
+
+    glValidateProgram(programID);
+    glGetProgramiv(programID, GL_VALIDATE_STATUS, &ret);
+    glGetProgramInfoLog(programID, GL_INFO_LOG_LENGTH-1, &len, tmpBuf);
+    tmpBuf[len] = '\0';
+
+    if (GL_FALSE == ret)
+        LOG(LOG_WARNING, "invalid shader: %s", tmpBuf);
+    else
+        LOG(LOG_INFORMATION, "glValidateProgram says \"%s\"", tmpBuf);
+#endif // DEBUG
+}
 
 ShaderProgram::ShaderProgram(std::string frag, std::string vert) {
     fragmentShaderID = loadShader(frag, GL_FRAGMENT_SHADER);
@@ -47,6 +63,8 @@ ShaderProgram::ShaderProgram(std::string frag, std::string vert) {
     glAttachShader(programID, fragmentShaderID);
     glAttachShader(programID, vertexShaderID);
     glLinkProgram(programID);
+    Validate(programID);
+
     checkGL();
 }
 
