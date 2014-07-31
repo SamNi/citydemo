@@ -14,29 +14,15 @@
 
 namespace Frontend {
 
-
-struct MyRenderer : public IRenderer {
-    MyRenderer(void) {
-        LOG(LOG_TRACE, "MyRenderer %d constructed", (int)this);
-    }
-    ~MyRenderer(void) {
-        LOG(LOG_TRACE, "MyRenderer %d destroyed", (int)this);
-    }
-    virtual void visit(const IEntity& ent) const {
-        LOG(LOG_TRACE, "MyRenderer %d visiting entity %d", (int)this, (int)&ent);
-    }
-};
-
 struct Pimpl;
 std::unique_ptr<Pimpl> pFrontend = nullptr;
 
-struct Pimpl {
+struct Pimpl : public IRenderer {
     bool Startup(int w, int h) {
         if (!Backend::Startup(w, h)) {
             LOG(LOG_CRITICAL, "Backend::Startup returned false\n");
             return false;
         }
-
         modes = glfwGetVideoModes(glfwGetPrimaryMonitor(), &nVidmodes);
         for (int i = 0;i < nVidmodes;++i) {
             LOG(LOG_INFORMATION, "%d %d at %dHz (R%dG%dB%d)",
@@ -47,7 +33,6 @@ struct Pimpl {
                 modes[i].greenBits,
                 modes[i].blueBits);
         }
-
         return true;
     }
     void Shutdown(void) {
@@ -63,23 +48,12 @@ struct Pimpl {
         Backend::EndFrame(); // With this call, the renderer sets off to do its thing
     }
 
-    class MyRenderer : public IRenderer {
-    public:
-        MyRenderer(void) {
-            LOG(LOG_TRACE, "MyRenderer %d constructed", (int)this);
-        }
-        ~MyRenderer(void) {
-            LOG(LOG_TRACE, "MyRenderer %d destroyed", (int)this);
-        }
-        virtual void visit(const IEntity& ent) const {
-            LOG(LOG_TRACE, "MyRenderer %d visiting entity %d", (int)this, (int)&ent);
-        }
-    };
-    const IRenderer& getRenderer(void) const { return r; }
-    MyRenderer r;
+    virtual void visit(const IEntity& ent) const {
+        LOG(LOG_TRACE, "MyRenderer %d visiting entity %d", (int)this, (int)&ent);
+    }
+
     const GLFWvidmode *modes;
     int nVidmodes;
-    
 };
 
 bool Startup(int w, int h) {
@@ -100,7 +74,7 @@ void Shutdown(void) {
 }
 
 const IRenderer& getRenderer(void) {
-    return pFrontend->getRenderer();
+    return *pFrontend;
 }
 
 }  // namespace Frontend
