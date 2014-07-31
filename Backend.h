@@ -25,6 +25,7 @@ void EndFrame(void);
 void Shutdown(void);
 void Resize(int w, int h);
 void Screenshot(void);
+void DrawFullscreenQuad(void);
 
 }
 #endif // ~_BACKEND_H_

@@ -1,20 +1,18 @@
 // Copyright [year] <Copyright Owner>
 // Goal: isolate the direct OpenGL calls, enums to the back end
-// Singletons are ugly but I can't think of anything better for this
 #include "./Backend.h"
 #include "./GL.h"
 #include "./GLM.h"
 #include "Shader.h"
 #include <png.h>            // for writing screenshots
-#include <GLFW/glfw3.h>     // glfwGetTime()
 
 #pragma warning(disable : 4800)
 
 namespace Backend {
 
-static const int        OFFSCREEN_WIDTH =           128;
+static const int        OFFSCREEN_WIDTH =           32;
 static const int        OFFSCREEN_HEIGHT =          128;
-static const int        TARGET_FPS =                60;
+static const bool       PIXELATED =                 false;
 
 struct Pimpl;
 std::unique_ptr<Pimpl> pBackend = nullptr;
@@ -32,13 +30,13 @@ struct Pimpl {
     bool Startup(int w, int h) {
         current_screen_width = w;
         current_screen_height = h;
-        screenCounter = 0;
+        screenshotCounter = 0;
 
         ClearPerformanceCounters();
         QueryHardwareSpecs();
 
         // Allocate things, prepare VBOs,*/
-        offscreenRender = false;
+        offscreenRender = PIXELATED;
         return true;
     }
     void Shutdown(void) {
@@ -46,7 +44,6 @@ struct Pimpl {
     }
     void BeginFrame(void) {
         ClearPerformanceCounters();
-        mPerfCounts.t_initial = glfwGetTime();
 
         if (offscreenRender) {
             static bool firstTime = true;
@@ -72,36 +69,17 @@ struct Pimpl {
             glViewport(0, 0, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-
-        // ... scene draws go in between the conclusion of BeginFrame()
-        // and the prologue of EndFrame()
-        //TheShaderManager.use("ortho2d");
-        DrawFullscreenQuad();
     }
     void EndFrame(void) {
-        static double elapsed;
-
         if (offscreenRender) {
             glBindFramebuffer(GL_FRAMEBUFFER, 0);       // switch to the visible render buffer
             glDisable(GL_DEPTH_TEST);
             glClear(GL_DEPTH_BUFFER_BIT);
             glBindTexture(GL_TEXTURE_2D, fbTexID);
             glViewport(0, 0, current_screen_width, current_screen_height);
-            Pimpl::DrawFullscreenQuad();
+            DrawFullscreenQuad();
         }
-        mPerfCounts.t_final = glfwGetTime();
-        
-        auto& t0 = mPerfCounts.t_initial;
-        auto& t1 = mPerfCounts.t_final;
-        double elapsed_ms = 1000*(t1-t0);
-        if (elapsed_ms > (1000.0/TARGET_FPS)) {
-            // TODO(SamNi): Intentionally taxing the GPU apparently 
-            // doesn't trigger this for some reason? Investigate.
-            static double past_ms;
-            past_ms = elapsed - (1000.0/TARGET_FPS);
-            LOG(LOG_TRACE, "frame behind schedule (%lfms elapsed, target is %lf)", elapsed_ms, past_ms);
-        }
+
     }
     void Resize(int w, int h) {
         glViewport(0, 0, w, h);
@@ -114,7 +92,7 @@ struct Pimpl {
         png_image image = { NULL };
         static char filename[512] = { '\0' };
 
-        sprintf(filename, "screenshot%05u.png", screenCounter++);
+        sprintf(filename, "screenshot%05u.png", screenshotCounter++);
 
         LOG(LOG_INFORMATION, "Screenshot %dx%d to %s", current_screen_width, current_screen_height, filename);
 
@@ -165,6 +143,7 @@ struct Pimpl {
             +1.0f, +1.0f, -1.0f,
         };
         static GLuint vbo_position, vbo_colors, vbo_texCoords, vbo_normal, vao;
+        static GLint progHandle, loc, loc2;
         if (firstTime) {
             glGenBuffers(1, &vbo_position);
             glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
@@ -203,11 +182,26 @@ struct Pimpl {
             glEnableVertexAttribArray(3);
             checkGL();
 
+            glGetIntegerv(GL_CURRENT_PROGRAM, &progHandle);
+            loc = glGetUniformLocation(progHandle, "modelView");
+            loc2 = glGetUniformLocation(progHandle, "projection");
             firstTime = false;
         } else
             glBindVertexArray(vao);
+
+        static float angle = 0.0f;
+        static glm::mat4 modelView;
+        static glm::mat4 projection;
+
+        modelView = glm::rotate(angle, glm::vec3(0.0f,0.0f,1.0f));
+        modelView *= glm::lookAt(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        projection = glm::perspective(glm::radians(75.0f), (float)current_screen_width/current_screen_height, 0.01f, 100.0f);
+        glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(modelView));
+        glUniformMatrix4fv(loc2, 1, GL_FALSE, glm::value_ptr(projection));
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+        angle += 0.05f;
     }
+
     void EnableAdditiveBlending(void) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
@@ -223,14 +217,14 @@ struct Pimpl {
     GLuint fbo_id, fbTexID;
     GLint old_texID;
     bool offscreenRender;
-    uint16_t screenCounter;
+    uint16_t screenshotCounter;
 
     // Per-frame performance stats
     struct PerfCounters {
-        // TODO(SamNi): I don't feel comfortable with glfw in the backend. Fix?
-        double      t_initial;  // BeginFrame()
-        double      t_final;    // EndFrame();
+        /// TBD
+        int poop;
     };
+    PerfCounters mPerfCounts;
 
     // Various GL specs
     struct Specs {
@@ -243,9 +237,6 @@ struct Pimpl {
         int nMaxVertexAttribs;
     };
     Specs mSpecs;
-    PerfCounters mPerfCounts;
-
-
 };
 
 // exports
@@ -263,5 +254,5 @@ void BeginFrame(void) { pBackend->BeginFrame(); }
 void EndFrame(void) { pBackend->EndFrame(); }
 void Resize(int w, int h) { pBackend->Resize(w, h); }
 void Screenshot(void) { pBackend->Screenshot(); }
-
+void DrawFullscreenQuad(void) { pBackend->DrawFullscreenQuad(); }
 } // ~namespace
