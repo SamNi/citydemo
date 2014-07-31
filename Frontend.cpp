@@ -8,9 +8,24 @@
 #include <unordered_set>
 #include "essentials.h"
 #include "./Frontend.h"
-#include "GL.h"
+#include "./GL.h"
+#include "IRenderer.h"
+#include "IEntity.h"
 
 namespace Frontend {
+
+
+struct MyRenderer : public IRenderer {
+    MyRenderer(void) {
+        LOG(LOG_TRACE, "MyRenderer %d constructed", (int)this);
+    }
+    ~MyRenderer(void) {
+        LOG(LOG_TRACE, "MyRenderer %d destroyed", (int)this);
+    }
+    virtual void visit(const IEntity& ent) const {
+        LOG(LOG_TRACE, "MyRenderer %d visiting entity %d", (int)this, (int)&ent);
+    }
+};
 
 struct Pimpl;
 std::unique_ptr<Pimpl> pFrontend = nullptr;
@@ -48,8 +63,23 @@ struct Pimpl {
         Backend::EndFrame(); // With this call, the renderer sets off to do its thing
     }
 
+    class MyRenderer : public IRenderer {
+    public:
+        MyRenderer(void) {
+            LOG(LOG_TRACE, "MyRenderer %d constructed", (int)this);
+        }
+        ~MyRenderer(void) {
+            LOG(LOG_TRACE, "MyRenderer %d destroyed", (int)this);
+        }
+        virtual void visit(const IEntity& ent) const {
+            LOG(LOG_TRACE, "MyRenderer %d visiting entity %d", (int)this, (int)&ent);
+        }
+    };
+    const IRenderer& getRenderer(void) const { return r; }
+    MyRenderer r;
     const GLFWvidmode *modes;
     int nVidmodes;
+    
 };
 
 bool Startup(int w, int h) {
@@ -58,15 +88,19 @@ bool Startup(int w, int h) {
     return pFrontend->Startup(w, h);
 }
 
-void Shutdown(void) {
-    assert(pFrontend);
-    pFrontend->Shutdown();
-    pFrontend.reset(nullptr);
-}
 void Render(void) {
     assert(pFrontend);
     pFrontend->Render();
 }
 
+void Shutdown(void) {
+    assert(pFrontend);
+    pFrontend->Shutdown();
+    pFrontend.reset(nullptr);
+}
+
+const IRenderer& getRenderer(void) {
+    return pFrontend->getRenderer();
+}
 
 }  // namespace Frontend

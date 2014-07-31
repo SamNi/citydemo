@@ -126,6 +126,8 @@
     <ClInclude Include="Frontend.h" />
     <ClInclude Include="GL.h" />
     <ClInclude Include="GLM.h" />
+    <ClInclude Include="IEntity.h" />
+    <ClInclude Include="IRenderer.h" />
     <ClInclude Include="LuaBindings.h" />
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="ResourceManager.h" />
