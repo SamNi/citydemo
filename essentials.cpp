@@ -64,7 +64,6 @@ void checkGL(void) {
     GLuint err = glGetError();
     if (GL_NO_ERROR!=err) {
         LOG(LOG_CRITICAL, "%s\n", gluErrorString(err));
-        assert(!"alsjlkasjgk");
         exit(EXIT_FAILURE);
     }
 #endif
