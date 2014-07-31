@@ -9,7 +9,7 @@ public:
 private:
     bool Startup(void);
     bool Done(void);
-    void Update(void);
+    void Update(uint32_t delta_ms);
     void Render(void);
     void Shutdown(void);
 };

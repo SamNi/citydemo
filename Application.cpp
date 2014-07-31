@@ -1,7 +1,8 @@
 #include "./citydemo.h"
 #include "./LuaBindings.h"
+#include "Frontend.h"
 
-// TODO(SamNi): duplicate values defined here and in Backend.cpp, fix
+
 int screen_width =              1600;
 int screen_height =             900;
 int screen_pos_x =              100;
@@ -10,6 +11,11 @@ float aspect_ratio =            static_cast<float>(screen_width/screen_height);
 float fov =                     60.0f;
 const char *appName =           nullptr;  // set by command line
 GLFWwindow *window =            nullptr;
+
+double target_fps =             60.0;
+double target_period =          1.0/target_fps;
+bool vsync =                    true;
+
 
 static void size_callback(GLFWwindow *, int, int);
 static void error_callback(int, const char *);
@@ -24,11 +30,43 @@ int Application::Run(void) {
     if (!Startup())
         return EXIT_FAILURE;
 
+    static double t0, t1, tdelta, remaining;
+    static bool goSlow;
     while (!Done()) {
-        Update();
+        t0 = glfwGetTime();
+
+        Update(target_period);
         Render();
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+
+        t1 = glfwGetTime();
+        tdelta = t1 - t0;
+        remaining = target_period - tdelta;
+        if (tdelta > target_period) {
+            LOG(LOG_WARNING, "frame behind schedule by %.2lf (%.2lfms elapsed)", 1000.0*(-remaining), 1000.0*tdelta);
+            glfwPollEvents();
+            glfwSwapInterval(0); // screen tearing is a lesser evil than dropped frames
+            glfwSwapBuffers(window);
+            glfwSwapInterval(vsync ? 1 : 0);
+        } else {
+            glfwPollEvents();
+            glfwSwapBuffers(window);
+        }
+#if 0
+// actually, maybe glfwSwapbuffers() does this for me, but I don't know.
+// investigation says it relies on SwapBuffers() on win32, which I don't know 
+// if it sleeps or not. Run-time profiling strongly suggests that it does,
+// but leaving this here for now
+        else {
+            // experimentally adjust this
+            static double sleepScaleFactor =       0.8;
+            // sleep off most of the rest of the time we have left and
+            // give some precious, but unneeded cycles to the rest of
+            // the program
+            uint32_t sleepOffTime = (uint32_t)(1000.0*sleepScaleFactor*remaining);
+            LOG(LOG_TRACE, "%u", sleepOffTime);
+            //Sleep(sleepOffTime); 
+        }
+#endif
     }
 
     Shutdown();
@@ -59,41 +97,38 @@ bool Application::Startup(void) {
     glewExperimental = GL_TRUE;
     if (GLEW_OK != glewInit()) {
         LOG(LOG_CRITICAL, "glewInit failed\n");
+        return false;
     }
+    glfwSwapInterval(vsync ? 1 : 0);
 
-    if (!Backend::Startup(screen_width, screen_height)) {
-        LOG(LOG_CRITICAL, "BackEnd::Startup\n");
-        exit(EXIT_FAILURE);
+    if (!Frontend::Startup(screen_width, screen_height)) {
+        LOG(LOG_CRITICAL, "Frontend::Startup\n");
+        return false;
     }
-
     if (!Lua::Startup()) {
         LOG(LOG_CRITICAL, "Lua::Startup\n");
-        exit(EXIT_FAILURE);
+        return false;
     }
 
     if (!Manager::Startup()) {
         LOG(LOG_CRITICAL, "Manager::Startup\n");
-        exit(EXIT_FAILURE);
+        return false;
     }
+
     return true;
 }
 bool Application::Done(void) { return static_cast<bool>(glfwWindowShouldClose(window)); }
-void Application::Update(void) {
+void Application::Update(uint32_t delta_ms) {
     // Gather input
 
     // Update world state
 }
 void Application::Render(void) {
-    Backend::BeginFrame();
-
-    /// Queue up things for the renderer to do
-    // ...
-
-    Backend::EndFrame(); // With this call, the renderer sets off to do its thing
+    Frontend::Render();
 }
 void Application::Shutdown(void) {
     ShaderManager::Shutdown();
-    Backend::Shutdown();
+    Frontend::Shutdown();
     glfwDestroyWindow(window);
     glfwTerminate();
 }
