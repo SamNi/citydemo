@@ -1,4 +1,5 @@
 // Copyright [year] <Copyright Owner>
+/*
 #include "ParticleSystem.h"
 #include "GLM.h"
 
@@ -88,3 +89,27 @@ void ParticleSystem::Draw(void) {
     glBindBuffer(GL_ARRAY_BUFFER, ssbo_points);
     glDrawArrays(GL_TRIANGLES, 0, nParticles);
 }
+*/
+#include "ParticleSystem.h"
+
+void Particle::accept(const IRenderer* r) const {
+    r->visit(this);
+}
+
+PSystem::PSystem(int n) : nParticles(n) {
+    elem = new Particle[nParticles];
+    for (int i = 0;i < nParticles; ++i) {
+        elem[i].pos = glm::vec3( uniform(-1.0f, 1.0f), uniform(-1.0f, 1.0f), uniform(-1.0f, 1.0f));
+        elem[i].timeLeft = uniform(7.0f, 8.0f);
+    }
+}
+
+PSystem::~PSystem(void) {
+    delete[] elem;
+}
+
+void PSystem::accept(const IRenderer* r) const {
+    for (int i = 0;i < nParticles;++i)
+        r->visit(&elem[i]);
+}
+

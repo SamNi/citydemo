@@ -11,13 +11,15 @@
 #include "./GL.h"
 #include "IRenderer.h"
 #include "IEntity.h"
+#include "ParticleSystem.h"
+#include <typeinfo>
 
 namespace Frontend {
 
-struct Pimpl;
-std::unique_ptr<Pimpl> pFrontend = nullptr;
+struct Impl;
+std::unique_ptr<Impl> pFrontend = nullptr;
 
-struct Pimpl : public IRenderer {
+struct Impl :  public IRenderer {
     bool Startup(int w, int h) {
         if (!Backend::Startup(w, h)) {
             LOG(LOG_CRITICAL, "Backend::Startup returned false\n");
@@ -42,14 +44,23 @@ struct Pimpl : public IRenderer {
 
         Backend::Shutdown();
     }
-    void Render(void) {
+    
+    virtual void visit(const IEntity* ent) const {
+        /*
         Backend::BeginFrame();
         Backend::DrawFullscreenQuad();
-        Backend::EndFrame(); // With this call, the renderer sets off to do its thing
+        Backend::EndFrame(); // With this call, the backend sets off to do its thing
+        */
+        //LOG(LOG_CRITICAL, "you failed");
+        auto the_real_type = typeid(*ent).name();
     }
 
-    virtual void visit(const IEntity& ent) const {
-        LOG(LOG_TRACE, "MyRenderer %d visiting entity %d", (int)this, (int)&ent);
+    virtual void visit(const PSystem* ps) const {
+        //LOG(LOG_TRACE, "visiting particle system %d", (int)&ps);
+        LOG(LOG_TRACE, "derived");
+    }
+    virtual void visit(const Particle* p) const {
+        LOG(LOG_TRACE, "derived2");
     }
 
     const GLFWvidmode *modes;
@@ -58,13 +69,8 @@ struct Pimpl : public IRenderer {
 
 bool Startup(int w, int h) {
     assert(nullptr == pFrontend);
-    pFrontend = std::unique_ptr<Pimpl>(new Pimpl());
+    pFrontend = std::unique_ptr<Impl>(new Impl());
     return pFrontend->Startup(w, h);
-}
-
-void Render(void) {
-    assert(pFrontend);
-    pFrontend->Render();
 }
 
 void Shutdown(void) {
@@ -73,8 +79,8 @@ void Shutdown(void) {
     pFrontend.reset(nullptr);
 }
 
-const IRenderer& getRenderer(void) {
-    return *pFrontend;
+const IRenderer* getRenderer(void) {
+    return pFrontend.get();
 }
 
 }  // namespace Frontend

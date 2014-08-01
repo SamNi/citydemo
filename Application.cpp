@@ -5,6 +5,7 @@
 #include "IEntity.h"
 #include "IRenderer.h"
 
+#include "ParticleSystem.h"
 
 int screen_width =              1600;
 int screen_height =             900;
@@ -122,47 +123,22 @@ bool Application::Startup(void) {
 }
 bool Application::Done(void) { return static_cast<bool>(glfwWindowShouldClose(window)); }
 
+static PSystem *p = nullptr;
+
 void Application::Update(uint32_t delta_ms) {
     // Gather input
     // ...
 
     // Update world state
-    struct MyEntity : IEntity {
-        glm::vec3 pos;
-        MyEntity(void) {
-            LOG(LOG_TRACE, "MyEntity %d constructed", (int)this);
-        }
-        ~MyEntity(void) {
-            LOG(LOG_TRACE, "MyEntity %d destroyed", (int)this);
-        }
-        virtual void accept(const IRenderer& r) const {
-            LOG(LOG_TRACE, "I am entity %d being visited by %d", this, (int)&r);
-        }
-    };
-    static MyEntity ent;
-    static const IRenderer& pRend = Frontend::getRenderer();
-
-    ent.accept( pRend );
+    static bool firstTime = true;
+    if (firstTime) {
+        p = new PSystem(100);
+        firstTime = false;
+    }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void Application::Render(void) {
-    Frontend::Render();
+    Frontend::getRenderer()->visit( p );
 }
 void Application::Shutdown(void) {
     ShaderManager::Shutdown();

@@ -26,6 +26,9 @@ struct Pimpl {
         glGetIntegerv(GL_MAX_ELEMENTS_VERTICES, &mSpecs.nMaxElementsVertices);
         glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &mSpecs.nMaxTextureImageUnits);
         glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &mSpecs.nMaxVertexAttribs);
+        mSpecs.renderer = glGetString(GL_RENDERER);
+        mSpecs.vendor = glGetString(GL_VENDOR);
+        mSpecs.version = glGetString(GL_VERSION);
     }
     bool Startup(int w, int h) {
         current_screen_width = w;
@@ -229,12 +232,15 @@ struct Pimpl {
     // Various GL specs
     struct Specs {
         // Try to keep in alphabetical order
-        int nMaxCombinedTextureImageUnits;
-        int nMaxDrawBuffers;
-        int nMaxElementsIndices;
-        int nMaxElementsVertices;
-        int nMaxTextureImageUnits;
-        int nMaxVertexAttribs;
+        int             nMaxCombinedTextureImageUnits;
+        int             nMaxDrawBuffers;
+        int             nMaxElementsIndices;
+        int             nMaxElementsVertices;
+        int             nMaxTextureImageUnits;
+        int             nMaxVertexAttribs;
+        const GLubyte*  renderer;
+        const GLubyte*  vendor;
+        const GLubyte*  version;
     };
     Specs mSpecs;
 };

@@ -137,5 +137,4 @@ int main(int argc, char *argv[]) {
     Lua::Shutdown();
     Backend::Shutdown();
     */
-    return EXIT_SUCCESS;
 }

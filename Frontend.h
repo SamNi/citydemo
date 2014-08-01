@@ -7,9 +7,8 @@
 namespace Frontend {
 
 bool Startup(int w, int h);
-void Render(void);
 void Shutdown(void);
-const IRenderer& getRenderer(void);
+const IRenderer* getRenderer(void);
 
 }  // namespace Frontend
 
