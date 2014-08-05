@@ -8,24 +8,66 @@
 
 #pragma warning(disable : 4800)
 
-namespace Backend {
+static const int        OFFSCREEN_WIDTH =           256;
+static const int        OFFSCREEN_HEIGHT =          256;
+static const bool       PIXELATED =                 true;
 
-static const int        OFFSCREEN_WIDTH =           32;
-static const int        OFFSCREEN_HEIGHT =          128;
-static const bool       PIXELATED =                 false;
+struct Framebuffer {
+    explicit Framebuffer(int w, int h) : width(w), height(h) {
+        // TODO(SamNi): I know this is suboptimal.
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTextureID);
 
-struct Pimpl;
-std::unique_ptr<Pimpl> pBackend = nullptr;
+        glGenTextures(1, &textureID);
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        checkGL();
 
-struct Pimpl {
+        glGenFramebuffers(1, &framebufferID);
+        glBindFramebuffer(GL_FRAMEBUFFER, framebufferID);
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, textureID, 0);
+        checkGL();
+
+        glBindTexture(GL_TEXTURE_2D, oldTextureID);
+        checkGL();
+    }
+    void Bind(void) const {
+        glBindFramebuffer(GL_FRAMEBUFFER, framebufferID);
+        glBindTexture(GL_TEXTURE_2D, oldTextureID);
+        glViewport(0, 0, Framebuffer::width, Framebuffer::height);
+        checkGL();
+    }
+    void Blit(int w, int h) const {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);       // switch to the visible render buffer
+        glDisable(GL_DEPTH_TEST);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glViewport(0, 0, w, h);
+        Backend::DrawFullscreenQuad();
+    }
+    GLuint          framebufferID;
+    GLuint          textureID;
+    GLint           oldTextureID;
+    uint16_t        width, height;
+};
+
+static Framebuffer *offscreenFB = nullptr;
+
+struct Backend::Impl {
     inline void ClearPerformanceCounters(void) { memset(&mPerfCounts, NULL, sizeof(PerfCounters)); }
     inline void QueryHardwareSpecs(void) {
         glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &mSpecs.nMaxCombinedTextureImageUnits);
         glGetIntegerv(GL_MAX_DRAW_BUFFERS, &mSpecs.nMaxDrawBuffers);
         glGetIntegerv(GL_MAX_ELEMENTS_INDICES, &mSpecs.nMaxElementsIndices);
         glGetIntegerv(GL_MAX_ELEMENTS_VERTICES, &mSpecs.nMaxElementsVertices);
+        glGetIntegerv(GL_MAX_GEOMETRY_UNIFORM_BLOCKS, &mSpecs.nMaxGeometryUniformBlocks);
+        glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, &mSpecs.nMaxFragmentUniformBlocks);
         glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &mSpecs.nMaxTextureImageUnits);
+        glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS , &mSpecs.nMaxUniformBufferBindings);
         glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &mSpecs.nMaxVertexAttribs);
+        glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &mSpecs.nMaxVertexUniformBlocks);
+
         mSpecs.renderer = glGetString(GL_RENDERER);
         mSpecs.vendor = glGetString(GL_VENDOR);
         mSpecs.version = glGetString(GL_VERSION);
@@ -45,44 +87,19 @@ struct Pimpl {
     void Shutdown(void) {
         // glDelete* calls should go here
     }
+
     void BeginFrame(void) {
         ClearPerformanceCounters();
-
         if (offscreenRender) {
-            static bool firstTime = true;
-            if (firstTime) {
-                glGetIntegerv(GL_TEXTURE_BINDING_2D, &old_texID);
-                checkGL();
-                glGenTextures(1, &fbTexID);
-                glBindTexture(GL_TEXTURE_2D, fbTexID);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-                checkGL();
-
-                glGenFramebuffers(1, &fbo_id);
-                glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
-                glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, fbTexID, 0);
-                checkGL();
-
-                firstTime = false;
-            }
-            glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);  // rendering to offscreen buffer 
-            glBindTexture(GL_TEXTURE_2D, old_texID);    // with the image we read
-            glViewport(0, 0, OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
+            if (nullptr == offscreenFB)
+                offscreenFB = new Framebuffer(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
+            offscreenFB->Bind();    
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
     void EndFrame(void) {
-        if (offscreenRender) {
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);       // switch to the visible render buffer
-            glDisable(GL_DEPTH_TEST);
-            glClear(GL_DEPTH_BUFFER_BIT);
-            glBindTexture(GL_TEXTURE_2D, fbTexID);
-            glViewport(0, 0, current_screen_width, current_screen_height);
-            DrawFullscreenQuad();
-        }
-
+        if (offscreenRender)
+            offscreenFB->Blit(current_screen_width, current_screen_height);
     }
     void Resize(int w, int h) {
         glViewport(0, 0, w, h);
@@ -202,7 +219,7 @@ struct Pimpl {
         glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(modelView));
         glUniformMatrix4fv(loc2, 1, GL_FALSE, glm::value_ptr(projection));
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-        angle += 0.05f;
+        angle += 0.01f;
     }
 
     void EnableAdditiveBlending(void) {
@@ -217,8 +234,6 @@ struct Pimpl {
     int current_screen_width;
     int current_screen_height;
 
-    GLuint fbo_id, fbTexID;
-    GLint old_texID;
     bool offscreenRender;
     uint16_t screenshotCounter;
 
@@ -236,8 +251,13 @@ struct Pimpl {
         int             nMaxDrawBuffers;
         int             nMaxElementsIndices;
         int             nMaxElementsVertices;
+        int             nMaxFragmentUniformBlocks;
+        int             nMaxGeometryUniformBlocks;
         int             nMaxTextureImageUnits;
+        int             nMaxUniformBufferBindings;
         int             nMaxVertexAttribs;
+        int             nMaxVertexUniformBlocks;
+
         const GLubyte*  renderer;
         const GLubyte*  vendor;
         const GLubyte*  version;
@@ -245,20 +265,21 @@ struct Pimpl {
     Specs mSpecs;
 };
 
-// exports
-bool Startup(int w, int h) {
-    pBackend = std::unique_ptr<Pimpl>(new Pimpl());
-    return pBackend->Startup(w, h);
+std::unique_ptr<Backend::Impl> Backend::mImpl = nullptr;
+
+// public interface
+bool Backend::Startup(int w, int h) {
+    mImpl = std::unique_ptr<Impl>(new Impl());
+    return mImpl->Startup(w, h);
 }
 
-void Shutdown(void) {
-    pBackend->Shutdown();
-    pBackend.reset(nullptr);
+void Backend::Shutdown(void) {
+    mImpl->Shutdown();
+    mImpl.reset(nullptr);
 }
 
-void BeginFrame(void) { pBackend->BeginFrame(); }
-void EndFrame(void) { pBackend->EndFrame(); }
-void Resize(int w, int h) { pBackend->Resize(w, h); }
-void Screenshot(void) { pBackend->Screenshot(); }
-void DrawFullscreenQuad(void) { pBackend->DrawFullscreenQuad(); }
-} // ~namespace
+void Backend::BeginFrame(void) { mImpl->BeginFrame(); }
+void Backend::EndFrame(void) { mImpl->EndFrame(); }
+void Backend::Resize(int w, int h) { mImpl->Resize(w, h); }
+void Backend::Screenshot(void) { mImpl->Screenshot(); }
+void Backend::DrawFullscreenQuad(void) { mImpl->DrawFullscreenQuad(); }

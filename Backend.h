@@ -2,7 +2,6 @@
 #ifndef _BACKEND_H_
 #define _BACKEND_H_
 #include "essentials.h"
-namespace Backend {
 
 // Think about:
 // what kind of low level commands might my backend render queue provide?
@@ -19,13 +18,18 @@ namespace Backend {
 // do I really want to double buf anything?
 //      and if so, what?
 
-bool Startup(int w, int h);
-void BeginFrame(void);
-void EndFrame(void);
-void Shutdown(void);
-void Resize(int w, int h);
-void Screenshot(void);
-void DrawFullscreenQuad(void);
+class Backend {
+public:
+    static bool Startup(int w, int h);
+    static void BeginFrame(void);
+    static void EndFrame(void);
+    static void Shutdown(void);
+    static void Resize(int w, int h);
+    static void Screenshot(void);
+    static void DrawFullscreenQuad(void);
 
-}
+private:
+    struct Impl;
+    static std::unique_ptr<Impl> mImpl;
+};
 #endif // ~_BACKEND_H_
