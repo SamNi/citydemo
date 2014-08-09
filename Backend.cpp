@@ -178,43 +178,43 @@ struct RGBA {
 struct TexCoord32 {
     GLushort u, v;
 };
-enum VertexAttribute {
-    VERTEX_ATTR_POSITION = 0,
-    VERTEX_ATTR_COLOR,
-    VERTEX_ATTR_TEXCOORD,
-    VERTEX_ATTR_NORMAL
-};
+
 struct GeometryBuffer {
+    enum GeometryBufferID {
+        VERTEX_ATTR_POSITION = 0,
+        VERTEX_ATTR_COLOR,
+        VERTEX_ATTR_TEXCOORD,
+        VERTEX_ATTR_NORMAL,
+        VERTEX_INDEX,
+        INDIRECT_DRAW_CMD
+    };
+    static const int NUM_GEOM_BUF = 6;
     explicit GeometryBuffer(void) : mIsOpen(false) {
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
 
-        glGenBuffers(1, &vertex_buffer_id);
-        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
+        glGenBuffers(NUM_GEOM_BUF, vertAttrID);
+        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_POSITION]);
         glBufferStorage(GL_ARRAY_BUFFER, WORLD_VTX_BUF_SIZE, nullptr, GEOMETRY_BUF_FLAGS);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glVertexAttribPointer(VERTEX_ATTR_POSITION, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
         
-        glGenBuffers(1, &color_buffer_id);
-        glBindBuffer(GL_ARRAY_BUFFER, color_buffer_id);
+        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_COLOR]);
         glBufferStorage(GL_ARRAY_BUFFER, WORLD_COLOR_BUF_SIZE, nullptr, GEOMETRY_BUF_FLAGS);
-        glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, nullptr);
+        glVertexAttribPointer(VERTEX_ATTR_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, nullptr);
 
-        glGenBuffers(1, &texcoord_buffer_id);
-        glBindBuffer(GL_ARRAY_BUFFER, texcoord_buffer_id);
+        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_TEXCOORD]);
         glBufferStorage(GL_ARRAY_BUFFER, WORLD_TEXCOORD_BUF_SIZE, nullptr, GEOMETRY_BUF_FLAGS);
-        glVertexAttribPointer(2, 2, GL_UNSIGNED_SHORT, GL_TRUE, 0, nullptr);
+        glVertexAttribPointer(VERTEX_ATTR_TEXCOORD, 2, GL_UNSIGNED_SHORT, GL_TRUE, 0, nullptr);
 
-        glGenBuffers(1, &index_buffer_id);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_id);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertAttrID[VERTEX_INDEX]);
         glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, WORLD_IDX_BUF_SIZE, nullptr, GEOMETRY_BUF_FLAGS);
 
-        glGenBuffers(1, &indirect_draw_buffer_id);
-        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_draw_buffer_id);
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, vertAttrID[INDIRECT_DRAW_CMD]);
         glBufferStorage(GL_DRAW_INDIRECT_BUFFER, WORLD_INDIRECT_CMD_BUF_SIZE, nullptr, GEOMETRY_BUF_FLAGS);
 
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glEnableVertexAttribArray(2);
+        glEnableVertexAttribArray(VERTEX_ATTR_POSITION);
+        glEnableVertexAttribArray(VERTEX_ATTR_COLOR);
+        glEnableVertexAttribArray(VERTEX_ATTR_TEXCOORD);
         glBindVertexArray(0);
 
         LOG(LOG_TRACE, "GeometryBuffer opened");
@@ -230,11 +230,7 @@ struct GeometryBuffer {
         if (IsOpen())
             Close();
 
-        glDeleteBuffers(1, &indirect_draw_buffer_id);
-        glDeleteBuffers(1, &index_buffer_id);
-        glDeleteBuffers(1, &texcoord_buffer_id);
-        glDeleteBuffers(1, &color_buffer_id);
-        glDeleteBuffers(1, &vertex_buffer_id);
+        glDeleteBuffers(NUM_GEOM_BUF, vertAttrID);
         glDeleteVertexArrays(1, &vao);
     }
     // opens the entire buffer (this is wasteful)
@@ -244,11 +240,11 @@ struct GeometryBuffer {
             return;
         }
         glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
+        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_POSITION]);
         vertBuf = (GLfloat*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        glBindBuffer(GL_ARRAY_BUFFER, color_buffer_id);
+        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_COLOR]);
         colBuf = (RGBA*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        glBindBuffer(GL_ARRAY_BUFFER, texcoord_buffer_id);
+        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_TEXCOORD]);
         texCoordBuf = (TexCoord32*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         idxBuf = (GLushort*)glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
         cmdBuf = (DrawElementsIndirectCommand*)glMapBuffer(GL_DRAW_INDIRECT_BUFFER, GL_WRITE_ONLY);
@@ -268,13 +264,13 @@ struct GeometryBuffer {
             return;
         }
         glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
+        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_POSITION]);
         if (GL_TRUE != glUnmapBuffer(GL_ARRAY_BUFFER))
             LOG(LOG_WARNING, "glUnmapBuffer(GL_ARRAY_BUFFER) failed on vertex_buffer_id");
-        glBindBuffer(GL_ARRAY_BUFFER, color_buffer_id);
+        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_COLOR]);
         if (GL_TRUE != glUnmapBuffer(GL_ARRAY_BUFFER))
             LOG(LOG_WARNING, "glUnmapBuffer(GL_ARRAY_BUFFER) failed on color_buffer_id");
-        glBindBuffer(GL_ARRAY_BUFFER, texcoord_buffer_id);
+        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_TEXCOORD]);
         if (GL_TRUE != glUnmapBuffer(GL_ARRAY_BUFFER))
             LOG(LOG_WARNING, "glUnmapBuffer(GL_ARRAY_BUFFER) failed on texcoord_buffer_id");
         if (GL_TRUE != glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER))
@@ -291,7 +287,7 @@ struct GeometryBuffer {
     }
     inline bool IsOpen(void) const { return mIsOpen; }
     inline GLuint get_vao(void) const { return vao; }
-    inline GLuint get_indirect_buf_id(void) const { return indirect_draw_buffer_id; };
+    inline GLuint get_indirect_buf_id(void) const { return vertAttrID[INDIRECT_DRAW_CMD]; };
     inline GLfloat *getVertBufPtr(void) const { return vertBuf; }
     inline RGBA *getColBufPtr(void) const { return colBuf; }
     inline TexCoord32 *getTexCoordBufPtr(void) const { return texCoordBuf; }
@@ -300,12 +296,7 @@ struct GeometryBuffer {
     inline DrawElementsIndirectCommand *getCmdBufPtr(void) const { return cmdBuf; }
 
 private:
-    GLuint vertex_buffer_id;
-    GLuint color_buffer_id;
-    GLuint texcoord_buffer_id;
-    GLuint normal_buffer_id;
-    GLuint index_buffer_id;
-    GLuint indirect_draw_buffer_id;
+    GLuint vertAttrID[NUM_GEOM_BUF];
     GLuint vao;
 
     GLfloat *vertBuf;
