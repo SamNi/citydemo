@@ -8,8 +8,8 @@
 
 #pragma warning(disable : 4800)
 
-static const int        OFFSCREEN_WIDTH =           1600;
-static const int        OFFSCREEN_HEIGHT =          900;
+static const int        OFFSCREEN_WIDTH =           256;
+static const int        OFFSCREEN_HEIGHT =          240;
 static const bool       PIXELATED =                 false;
 static const uint8_t    NUM_QUEUES =                2;
 static const uint8_t    QUEUE_SIZE =                8;
@@ -46,7 +46,7 @@ struct Framebuffer {
     void Blit(int w, int h) const {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);       // switch to the visible render buffer
         glDisable(GL_DEPTH_TEST);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT);
         glBindTexture(GL_TEXTURE_2D, textureID);
         glViewport(0, 0, w, h);
         Backend::DrawFullscreenQuad();
@@ -153,24 +153,6 @@ private:
 
 static Framebuffer *offscreenFB = nullptr;
 
-// adjust these to taste
-// SoA : structures of arrays
-const uint32_t WORLD_NUM_VTX = (1 << 20);
-const uint32_t WORLD_NUM_COLOR = WORLD_NUM_VTX;
-const uint32_t WORLD_NUM_TEXCOORD = WORLD_NUM_VTX;
-const uint32_t WORLD_NUM_NORMAL = WORLD_NUM_VTX;
-const uint32_t WORLD_NUM_IDX = (1 << 18);
-const uint32_t WORLD_NUM_INDIRECT_CMDS = (1 << 10);
-
-const uint32_t WORLD_VTX_BUF_SIZE = WORLD_NUM_VTX*3*sizeof(GLfloat); // 3 floating points for x, y, z
-const uint32_t WORLD_COLOR_BUF_SIZE = WORLD_NUM_COLOR*4*sizeof(GLubyte); // one byte per component, four components
-const uint32_t WORLD_TEXCOORD_BUF_SIZE = WORLD_NUM_COLOR*2*sizeof(GLushort); // 1 ushort per texture coordinate
-const uint32_t WORLD_NORMAL_BUF_SIZE = WORLD_NUM_NORMAL*sizeof(uint32_t); // a single GL_UNSIGNED_INT_10_10_10_2
-const uint32_t WORLD_IDX_BUF_SIZE = WORLD_NUM_IDX*sizeof(GLushort); // a single ushort for the index
-const uint32_t WORLD_INDIRECT_CMD_BUF_SIZE = WORLD_NUM_INDIRECT_CMDS*sizeof(DrawElementsIndirectCommand);
-
-const GLenum GEOMETRY_BUF_FLAGS = GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT;
-
 struct RGBA {
     GLubyte r, g, b, a;
 };
@@ -179,58 +161,133 @@ struct TexCoord32 {
     GLushort u, v;
 };
 
+// for use with GL_UNSIGNED_INT_2_10_10_10_REV
+inline GLuint NormalPack(const glm::vec4& v) {
+    return ((GLuint)(1023.0f*v.x) << 0) | 
+        ((GLuint)(1023.0f*v.y) << 10) | 
+        ((GLuint)(1023.0f*v.z) << 20) | 
+        ((GLuint)(3.0f*v.a) << 30);
+}
+
 struct GeometryBuffer {
+    /* brainstorm, thoughts, freeform
+    what should a draw queue have?
+        render commands
+            what constitutes a render command?
+                something you can feed into glMultiDrawElementsIndirect()
+        the number of render commands
+        "open" and "closed" states
+            "open", the client is free to write to it. This is the in between glMapBufferRange() and glUnmapBuffer()
+                in the future, possibly have compute shaders write directly to the GPU to avoid the roundtrip
+            "closed", client does not touch it. The GPU now reads from it.
+
+    You should have two queues that you swap between
+        At all times, one will be open and the other closed
+
+    A render command, as glMultiDrawElementsIndirect() sees it
+        number of indices
+        number of instances
+        the offset of the index considered to be the zeroth
+        the offset of the vertex considered to be the zeroth
+        the number of the first instance (typically zero)
+
+    idea: preallocate giant world geometry buffer upfront and manage it
+        managing this giant world geometry buffer would require some metadata, structures
+            all client side, of course. the buffer itself would be on the GPU
+        you will probably need to use these functions to manipulate the buffer on the GPU
+            glMapBuffer
+            glMapBufferRange
+            glUnmapBuffer
+            glBufferData
+            glBufferSubData
+            glBufferStorage     (for immutable)
+            glClearBufferData
+            glClearBufferSubData
+            glCopyBufferSubData
+            glDeleteBuffers
+            glFlushMappedBufferRange
+        Expect to be using write-only immutable storage a lot
+            GL_MAP_WRITE to upload world geometry from the client
+            GL_DYNAMIC_STORAGE to modify small subsets of the geometry
+            Maybe the GL_PERSISTENT.... maybe...
+        Watch out for synchronization issues! You might need
+            glMemoryBarrier
+            glFlushMappedBufferRange    */
+    // adjust these to taste
+    // SoA : structures of arrays
+    static const uint32_t WORLD_NUM_VTX = (1 << 20);
+    static const uint32_t WORLD_NUM_COLOR = WORLD_NUM_VTX;
+    static const uint32_t WORLD_NUM_TEXCOORD = WORLD_NUM_VTX;
+    static const uint32_t WORLD_NUM_NORMAL = WORLD_NUM_VTX;
+    static const uint32_t WORLD_NUM_IDX = (1 << 18);
+    static const uint32_t WORLD_NUM_INDIRECT_CMDS = (1 << 10);
+
+    static const uint32_t WORLD_VTX_BUF_SIZE = WORLD_NUM_VTX*3*sizeof(GLfloat); // 3 floating points for x, y, z
+    static const uint32_t WORLD_COLOR_BUF_SIZE = WORLD_NUM_COLOR*4*sizeof(GLubyte); // one byte per component, four components
+    static const uint32_t WORLD_TEXCOORD_BUF_SIZE = WORLD_NUM_COLOR*2*sizeof(GLushort); // 1 ushort per texture coordinate
+    static const uint32_t WORLD_NORMAL_BUF_SIZE = WORLD_NUM_NORMAL*sizeof(uint32_t); // a single GL_UNSIGNED_INT_10_10_10_2
+    static const uint32_t WORLD_IDX_BUF_SIZE = WORLD_NUM_IDX*sizeof(GLushort); // a single ushort for the index
+    static const uint32_t WORLD_INDIRECT_CMD_BUF_SIZE = WORLD_NUM_INDIRECT_CMDS*sizeof(DrawElementsIndirectCommand);
+
+    static const GLenum GEOMETRY_BUF_STORAGE_FLAGS = GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT;
     enum GeometryBufferID {
         VERTEX_ATTR_POSITION = 0,
         VERTEX_ATTR_COLOR,
         VERTEX_ATTR_TEXCOORD,
         VERTEX_ATTR_NORMAL,
         VERTEX_INDEX,
-        INDIRECT_DRAW_CMD
+        INDIRECT_DRAW_CMD,
+        GEO_BUF_ID_FINAL        // unused
     };
-    static const int NUM_GEOM_BUF = 6;
+    static const int NUM_GEOM_BUF = GEO_BUF_ID_FINAL - VERTEX_ATTR_POSITION;
     explicit GeometryBuffer(void) : mIsOpen(false) {
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
 
-        glGenBuffers(NUM_GEOM_BUF, vertAttrID);
-        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_POSITION]);
-        glBufferStorage(GL_ARRAY_BUFFER, WORLD_VTX_BUF_SIZE, nullptr, GEOMETRY_BUF_FLAGS);
+        glGenBuffers(NUM_GEOM_BUF, buf_id);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_POSITION]);
+        glBufferStorage(GL_ARRAY_BUFFER, WORLD_VTX_BUF_SIZE, nullptr, GEOMETRY_BUF_STORAGE_FLAGS);
         glVertexAttribPointer(VERTEX_ATTR_POSITION, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
         
-        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_COLOR]);
-        glBufferStorage(GL_ARRAY_BUFFER, WORLD_COLOR_BUF_SIZE, nullptr, GEOMETRY_BUF_FLAGS);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_COLOR]);
+        glBufferStorage(GL_ARRAY_BUFFER, WORLD_COLOR_BUF_SIZE, nullptr, GEOMETRY_BUF_STORAGE_FLAGS);
         glVertexAttribPointer(VERTEX_ATTR_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, nullptr);
 
-        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_TEXCOORD]);
-        glBufferStorage(GL_ARRAY_BUFFER, WORLD_TEXCOORD_BUF_SIZE, nullptr, GEOMETRY_BUF_FLAGS);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_TEXCOORD]);
+        glBufferStorage(GL_ARRAY_BUFFER, WORLD_TEXCOORD_BUF_SIZE, nullptr, GEOMETRY_BUF_STORAGE_FLAGS);
         glVertexAttribPointer(VERTEX_ATTR_TEXCOORD, 2, GL_UNSIGNED_SHORT, GL_TRUE, 0, nullptr);
 
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertAttrID[VERTEX_INDEX]);
-        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, WORLD_IDX_BUF_SIZE, nullptr, GEOMETRY_BUF_FLAGS);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_NORMAL]);
+        glBufferStorage(GL_ARRAY_BUFFER, WORLD_NORMAL_BUF_SIZE, nullptr, GEOMETRY_BUF_STORAGE_FLAGS);
+        glVertexAttribPointer(VERTEX_ATTR_NORMAL, 4, GL_UNSIGNED_INT_2_10_10_10_REV, GL_TRUE, 0, nullptr);
 
-        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, vertAttrID[INDIRECT_DRAW_CMD]);
-        glBufferStorage(GL_DRAW_INDIRECT_BUFFER, WORLD_INDIRECT_CMD_BUF_SIZE, nullptr, GEOMETRY_BUF_FLAGS);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buf_id[VERTEX_INDEX]);
+        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, WORLD_IDX_BUF_SIZE, nullptr, GEOMETRY_BUF_STORAGE_FLAGS);
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, buf_id[INDIRECT_DRAW_CMD]);
+        glBufferStorage(GL_DRAW_INDIRECT_BUFFER, WORLD_INDIRECT_CMD_BUF_SIZE, nullptr, GEOMETRY_BUF_STORAGE_FLAGS);
 
         glEnableVertexAttribArray(VERTEX_ATTR_POSITION);
         glEnableVertexAttribArray(VERTEX_ATTR_COLOR);
         glEnableVertexAttribArray(VERTEX_ATTR_TEXCOORD);
+        glEnableVertexAttribArray(VERTEX_ATTR_NORMAL);
         glBindVertexArray(0);
 
         LOG(LOG_TRACE, "GeometryBuffer opened");
         LOG(LOG_TRACE, "Vertex position buffer %.2lf mB (%u vertices)", WORLD_VTX_BUF_SIZE / (1024.0*1024.0), WORLD_NUM_VTX);
         LOG(LOG_TRACE, "Vertex color buffer %.2lf mB (%u colors)", WORLD_COLOR_BUF_SIZE / (1024.0*1024.0), WORLD_NUM_VTX);
         LOG(LOG_TRACE, "Vertex texcoord buffer %.2lf mB (%u texCoords)", WORLD_TEXCOORD_BUF_SIZE / (1024.0*1024.0), WORLD_NUM_VTX);
+        LOG(LOG_TRACE, "Vertex normal buffer %.2lf mB (%u texCoords)", WORLD_NORMAL_BUF_SIZE / (1024.0*1024.0), WORLD_NUM_VTX);
         LOG(LOG_TRACE, "Index buffer %.2lf mB (%u indices)", WORLD_IDX_BUF_SIZE / (1024.0*1024.0), WORLD_NUM_IDX);
         LOG(LOG_TRACE, "Indirect cmd buffer %.2lf kB (%u commands)", WORLD_INDIRECT_CMD_BUF_SIZE / (1024.0), WORLD_NUM_INDIRECT_CMDS);
-        LOG(LOG_TRACE, "Total OGL buffer size %.2lf mB", (WORLD_VTX_BUF_SIZE+WORLD_COLOR_BUF_SIZE+WORLD_TEXCOORD_BUF_SIZE+WORLD_IDX_BUF_SIZE+WORLD_INDIRECT_CMD_BUF_SIZE)/(1024.0*1024.0));
+        LOG(LOG_TRACE, "Total OGL buffer size %.2lf mB", (WORLD_VTX_BUF_SIZE+WORLD_COLOR_BUF_SIZE+WORLD_TEXCOORD_BUF_SIZE+WORLD_NORMAL_BUF_SIZE+WORLD_IDX_BUF_SIZE+WORLD_INDIRECT_CMD_BUF_SIZE)/(1024.0*1024.0));
         LOG(LOG_TRACE, "Application host size %u B", sizeof(GeometryBuffer));
     }
     ~GeometryBuffer(void) {
         if (IsOpen())
             Close();
 
-        glDeleteBuffers(NUM_GEOM_BUF, vertAttrID);
+        glDeleteBuffers(NUM_GEOM_BUF, buf_id);
         glDeleteVertexArrays(1, &vao);
     }
     // opens the entire buffer (this is wasteful)
@@ -240,15 +297,17 @@ struct GeometryBuffer {
             return;
         }
         glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_POSITION]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_POSITION]);
         vertBuf = (GLfloat*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_COLOR]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_COLOR]);
         colBuf = (RGBA*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_TEXCOORD]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_TEXCOORD]);
         texCoordBuf = (TexCoord32*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_NORMAL]);
+        normalBuf = (GLuint*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         idxBuf = (GLushort*)glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
         cmdBuf = (DrawElementsIndirectCommand*)glMapBuffer(GL_DRAW_INDIRECT_BUFFER, GL_WRITE_ONLY);
-        if (NULL == vertBuf)
+        if (!(vertBuf && colBuf && texCoordBuf))
             LOG(LOG_WARNING, "glMapBuffer(GL_ARRAY_BUFFER,) returned null");
         if (NULL == idxBuf)
             LOG(LOG_WARNING, "glMapBuffer(GL_ELEMENT_ARRAY_BUFFER,) returned null");
@@ -264,15 +323,18 @@ struct GeometryBuffer {
             return;
         }
         glBindVertexArray(vao);
-        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_POSITION]);
+        glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_POSITION]);
         if (GL_TRUE != glUnmapBuffer(GL_ARRAY_BUFFER))
-            LOG(LOG_WARNING, "glUnmapBuffer(GL_ARRAY_BUFFER) failed on vertex_buffer_id");
-        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_COLOR]);
+            LOG(LOG_WARNING, "glUnmapBuffer(GL_ARRAY_BUFFER) failed on VERTEX_ATTR_POSITION");
+        glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_COLOR]);
         if (GL_TRUE != glUnmapBuffer(GL_ARRAY_BUFFER))
-            LOG(LOG_WARNING, "glUnmapBuffer(GL_ARRAY_BUFFER) failed on color_buffer_id");
-        glBindBuffer(GL_ARRAY_BUFFER, vertAttrID[VERTEX_ATTR_TEXCOORD]);
+            LOG(LOG_WARNING, "glUnmapBuffer(GL_ARRAY_BUFFER) failed on VERTEX_ATTR_COLOR");
+        glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_TEXCOORD]);
         if (GL_TRUE != glUnmapBuffer(GL_ARRAY_BUFFER))
-            LOG(LOG_WARNING, "glUnmapBuffer(GL_ARRAY_BUFFER) failed on texcoord_buffer_id");
+            LOG(LOG_WARNING, "glUnmapBuffer(GL_ARRAY_BUFFER) failed on VERTEX_ATTR_TEXCOORD");
+        glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_NORMAL]);
+        if (GL_TRUE != glUnmapBuffer(GL_ARRAY_BUFFER))
+            LOG(LOG_WARNING, "glUnmapBuffer(GL_ARRAY_BUFFER) failed on VERTEX_ATTR_NORMAL");
         if (GL_TRUE != glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER))
             LOG(LOG_WARNING, "glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER) failed");
         if (GL_TRUE != glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER))
@@ -281,27 +343,30 @@ struct GeometryBuffer {
  
         vertBuf = nullptr;
         colBuf = nullptr;
+        texCoordBuf = nullptr;
+        normalBuf = nullptr;
         idxBuf = nullptr;
         cmdBuf = nullptr;
         mIsOpen = false;
     }
     inline bool IsOpen(void) const { return mIsOpen; }
     inline GLuint get_vao(void) const { return vao; }
-    inline GLuint get_indirect_buf_id(void) const { return vertAttrID[INDIRECT_DRAW_CMD]; };
+    inline GLuint get_indirect_buf_id(void) const { return buf_id[INDIRECT_DRAW_CMD]; };
     inline GLfloat *getVertBufPtr(void) const { return vertBuf; }
     inline RGBA *getColBufPtr(void) const { return colBuf; }
     inline TexCoord32 *getTexCoordBufPtr(void) const { return texCoordBuf; }
-
+    inline GLuint *getNormalBufPtr(void) const { return normalBuf; }
     inline GLushort *getIdxBufPtr(void) const { return idxBuf; }
     inline DrawElementsIndirectCommand *getCmdBufPtr(void) const { return cmdBuf; }
 
 private:
-    GLuint vertAttrID[NUM_GEOM_BUF];
+    GLuint buf_id[NUM_GEOM_BUF];
     GLuint vao;
 
     GLfloat *vertBuf;
     RGBA *colBuf;
     TexCoord32 *texCoordBuf;
+    GLuint *normalBuf;
 
     GLushort *idxBuf;
     DrawElementsIndirectCommand *cmdBuf;
@@ -371,6 +436,7 @@ struct Backend::Impl {
         static glm::vec3 *vtx = nullptr;
         static RGBA *col = nullptr;
         static TexCoord32 *tex = nullptr;
+        static GLuint *normal = nullptr;
         static GLushort *idx = nullptr;
         static DrawElementsIndirectCommand *cmd = nullptr;
 
@@ -381,6 +447,7 @@ struct Backend::Impl {
         vtx = (glm::vec3*)geom_buf.getVertBufPtr();
         col = (RGBA*)geom_buf.getColBufPtr();
         tex = (TexCoord32*)geom_buf.getTexCoordBufPtr();
+        normal = (GLuint*)geom_buf.getNormalBufPtr();
 
         idx = (GLushort*)geom_buf.getIdxBufPtr();
         cmd = (DrawElementsIndirectCommand*)geom_buf.getCmdBufPtr();
@@ -415,6 +482,11 @@ struct Backend::Impl {
             tex[2].v = 0;
             tex[3].u = 0;
             tex[3].v = 65535;
+
+            normal[0] = NormalPack(glm::vec4(1.0f,0.0f,0.0f,0.0f));
+            normal[1] = NormalPack(glm::vec4(0.0f,1.0f,0.0f,0.20f));
+            normal[2] = NormalPack(glm::vec4(0.0f,0.0f,1.0f,0.65f));
+            normal[3] = NormalPack(glm::vec4(0.0f,1.0f,1.0f,1.0f));
 
             idx[0] = 0;
             idx[1] = 1;
