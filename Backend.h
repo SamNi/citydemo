@@ -27,6 +27,7 @@ public:
     static void Resize(int w, int h);
     static void Screenshot(void);
     static void DrawFullscreenQuad(void);
+    static void AddTris(void);
 
 private:
     struct Impl;

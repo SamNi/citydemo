@@ -8,9 +8,11 @@
 
 #pragma warning(disable : 4800)
 
-static const int        OFFSCREEN_WIDTH =           256;
-static const int        OFFSCREEN_HEIGHT =          256;
-static const bool       PIXELATED =                 true;
+static const int        OFFSCREEN_WIDTH =           160;
+static const int        OFFSCREEN_HEIGHT =          90;
+static const bool       PIXELATED =                 false;
+static const uint8_t    NUM_QUEUES =                2;
+static const uint8_t    QUEUE_SIZE =                8;
 
 struct Framebuffer {
     explicit Framebuffer(int w, int h) : width(w), height(h) {
@@ -19,6 +21,9 @@ struct Framebuffer {
 
         glGenTextures(1, &textureID);
         glBindTexture(GL_TEXTURE_2D, textureID);
+        // shut up, nvidia
+        // http://www.opengl.org/wiki/Hardware_specifics:_NVidia?wiki/Hardware_specifics:_NVidia
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -52,11 +57,201 @@ struct Framebuffer {
     uint16_t        width, height;
 };
 
+struct DrawElementsIndirectCommand {
+    unsigned int idxCount, instanceCount, firstIndex, baseVertex, baseInstance;
+};
+
+struct TriList {
+    explicit TriList(void) : vao(0), vbo_points(0), vbo_indices(0) { }
+    void Init(const glm::vec3* v, int n) {
+        if (IsValid())
+            return;
+        glGenBuffers(1, &vbo_points);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_points);
+        glBufferData(GL_ARRAY_BUFFER, 3*n*sizeof(GLfloat), glm::value_ptr(*v), GL_STATIC_DRAW);
+
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_points);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(0);
+        glBindVertexArray(0);
+
+        indexed = false;
+        this->nVerts = nVerts;
+        this->nIdx = 0;
+    }
+    void Init(const glm::vec3 *v, const GLubyte *indices, int nVerts, int nIndices) {
+        if (IsValid())
+            return;
+
+        glGenBuffers(1, &indirect_draw_buffer);
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_draw_buffer);
+        glBufferData(GL_DRAW_INDIRECT_BUFFER,
+            1*sizeof(DrawElementsIndirectCommand),
+            NULL,
+            GL_DYNAMIC_DRAW);
+        DrawElementsIndirectCommand *cmd;
+        cmd = (DrawElementsIndirectCommand *)glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, 1*sizeof(DrawElementsIndirectCommand), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+        cmd[0].firstIndex = 0;                  // start from where
+        cmd[0].idxCount = nIndices;             // number of indices
+        cmd[0].baseInstance = 0;                // number of the first copy
+        cmd[0].instanceCount = 1;               // how many copies
+        cmd[0].baseVertex = 0;                  // initial vertex offset
+        glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER);
+
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+
+        glGenBuffers(1, &vbo_points);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_points);
+        glBufferData(GL_ARRAY_BUFFER, 3*nVerts*sizeof(GLfloat), glm::value_ptr(*v), GL_STATIC_DRAW);
+
+        glGenBuffers(1, &vbo_indices);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_indices);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, nIndices*sizeof(GLubyte), indices, GL_STATIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(0);
+        glBindVertexArray(0);
+        idx = indices;
+
+        indexed = true;
+        this->nVerts = nVerts;
+        this->nIdx = nIndices;
+    }
+
+    void Draw(void) const {
+        if (!IsValid())
+            return;
+        glBindVertexArray(vao);
+        if (indexed) {
+            glMultiDrawElementsIndirect(GL_TRIANGLES,
+                GL_UNSIGNED_BYTE,
+                nullptr,
+                1,  // number of elements
+                0   // tightly packed
+                );
+        } else {
+            glDrawArrays(GL_TRIANGLES, 0, nVerts);
+        }
+        glBindVertexArray(0);
+    }
+    GLuint  get_vao(void) const { return vao; }
+    GLuint  get_vbo(void) const { return vbo_points; }
+    GLuint get_vbo_indices(void) const { return vbo_indices; }
+    const GLubyte* get_indices(void) const { return idx; }
+    inline bool IsValid(void) const { return vao && vbo_points && vbo_indices && idx; }
+
+private:
+    GLuint indirect_draw_buffer;
+    GLuint vbo_points, vbo_indices, vao;
+    const GLubyte *idx;
+    int nVerts, nIdx;
+    bool indexed;
+};
+
 static Framebuffer *offscreenFB = nullptr;
+
+const uint32_t WORLD_NUM_VTX = 3;
+const uint32_t WORLD_NUM_IDX = 3;
+const uint32_t WORLD_NUM_INDIRECT_CMDS = 1;
+const uint32_t WORLD_VTX_BUF_SIZE = WORLD_NUM_VTX*3*sizeof(GLfloat);
+const uint32_t WORLD_IDX_BUF_SIZE = WORLD_NUM_IDX*sizeof(GLubyte);
+const uint32_t WORLD_INDIRECT_CMD_BUF_SIZE = WORLD_NUM_INDIRECT_CMDS*sizeof(DrawElementsIndirectCommand);
+
+struct GeometryBuffer {
+    explicit GeometryBuffer(void) : mIsOpen(false) {
+        LOG(LOG_TRACE, "GeometryBuffer open");
+
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+
+        glGenBuffers(1, &vertex_buffer_id);
+        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_id);
+        glBufferStorage(GL_ARRAY_BUFFER, WORLD_VTX_BUF_SIZE, nullptr, GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT);
+
+        glGenBuffers(1, &index_buffer_id);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_id);
+        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, WORLD_IDX_BUF_SIZE, nullptr, GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT);
+
+        glGenBuffers(1, &indirect_draw_buffer_id);
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirect_draw_buffer_id);
+        glBufferStorage(GL_DRAW_INDIRECT_BUFFER, WORLD_INDIRECT_CMD_BUF_SIZE, nullptr, GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+        glEnableVertexAttribArray(0);
+
+        glBindVertexArray(0);
+    }
+    ~GeometryBuffer(void) {
+        if (IsOpen())
+            Close();
+
+        glDeleteBuffers(1, &indirect_draw_buffer_id);
+        glDeleteBuffers(1, &index_buffer_id);
+        glDeleteBuffers(1, &vertex_buffer_id);
+    }
+    // opens the entire buffer (this is wasteful)
+    void Open(void) {
+        if (IsOpen()) {
+            LOG(LOG_WARNING, "Redundant GeometryBuffer opening");
+            return;
+        }
+        glBindVertexArray(vao);
+        vertBuf = (GLfloat*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        idxBuf = (GLubyte*)glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
+        cmdBuf = (DrawElementsIndirectCommand*)glMapBuffer(GL_DRAW_INDIRECT_BUFFER, GL_WRITE_ONLY);
+        if (NULL == vertBuf)
+            LOG(LOG_WARNING, "glMapBuffer(GL_ARRAY_BUFFER,) returned null");
+        if (NULL == idxBuf)
+            LOG(LOG_WARNING, "glMapBuffer(GL_ELEMENT_ARRAY_BUFFER,) returned null");
+        if (NULL == cmdBuf)
+            LOG(LOG_WARNING, "glMapBuffer(GL_DRAW_INDIRECT_BUFFER,) returned null");
+        glBindVertexArray(0);
+
+        mIsOpen = true;
+    }
+    void Close(void) {
+        if (!IsOpen()) {
+            LOG(LOG_WARNING, "Redundant GeometryBuffer closing");
+            return;
+        }
+        glBindVertexArray(vao);
+        if (GL_TRUE != glUnmapBuffer(GL_ARRAY_BUFFER))
+            LOG(LOG_WARNING, "glUnmapBuffer(GL_ARRAY_BUFFER) failed");
+        if (GL_TRUE != glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER))
+            LOG(LOG_WARNING, "glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER) failed");
+        if (GL_TRUE != glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER))
+            LOG(LOG_WARNING, "glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER) failed");
+        glBindVertexArray(0);
+ 
+        vertBuf = nullptr;
+        idxBuf = nullptr;
+        cmdBuf = nullptr;
+        mIsOpen = false;
+    }
+    inline bool IsOpen(void) const { return mIsOpen; }
+    inline GLuint get_vao(void) const { return vao; }
+    inline GLuint get_indirect_buf_id(void) const { return indirect_draw_buffer_id; };
+    inline GLfloat *getVertBufPtr(void) const { return vertBuf; }
+    inline GLubyte *getIdxBufPtr(void) const { return idxBuf; }
+    inline DrawElementsIndirectCommand *getCmdBufPtr(void) const { return cmdBuf; }
+private:
+    GLuint vertex_buffer_id;
+    GLuint index_buffer_id;
+    GLuint indirect_draw_buffer_id;
+    GLuint vao;
+    GLfloat *vertBuf;
+    GLubyte *idxBuf;
+    DrawElementsIndirectCommand *cmdBuf;
+    bool mIsOpen;
+};
 
 struct Backend::Impl {
     inline void ClearPerformanceCounters(void) { memset(&mPerfCounts, NULL, sizeof(PerfCounters)); }
     inline void QueryHardwareSpecs(void) {
+        glGetIntegerv(GL_NUM_EXTENSIONS, &mSpecs.nExtensions);
         glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &mSpecs.nMaxCombinedTextureImageUnits);
         glGetIntegerv(GL_MAX_DRAW_BUFFERS, &mSpecs.nMaxDrawBuffers);
         glGetIntegerv(GL_MAX_ELEMENTS_INDICES, &mSpecs.nMaxElementsIndices);
@@ -71,22 +266,37 @@ struct Backend::Impl {
         mSpecs.renderer = glGetString(GL_RENDERER);
         mSpecs.vendor = glGetString(GL_VENDOR);
         mSpecs.version = glGetString(GL_VERSION);
+
+        mSpecs.extensions.resize(mSpecs.nExtensions, "<null>");
+
+        for (int i = 0;i < mSpecs.nExtensions;++i) {
+            static const GLubyte *c;
+            c = glGetStringi(GL_EXTENSIONS, i);
+            LOG(LOG_TRACE, "extension: %s", c);
+            mSpecs.extensions[i] = (const char*)c;
+        }
+
     }
+    GeometryBuffer geom_buf;
+
     bool Startup(int w, int h) {
+        // misc. defaults
         current_screen_width = w;
         current_screen_height = h;
         screenshotCounter = 0;
+        offscreenRender = PIXELATED;
 
         ClearPerformanceCounters();
         QueryHardwareSpecs();
 
-        // Allocate things, prepare VBOs,*/
-        offscreenRender = PIXELATED;
+        // Allocate world geometry buffers
+
         return true;
     }
     void Shutdown(void) {
         // glDelete* calls should go here
     }
+
 
     void BeginFrame(void) {
         ClearPerformanceCounters();
@@ -97,7 +307,47 @@ struct Backend::Impl {
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
+
+    void AddTris(void) {
+        static GLfloat *vtx = nullptr;
+        static GLubyte *idx = nullptr;
+        static DrawElementsIndirectCommand *cmd = nullptr;
+
+        if (vtx || idx || cmd)
+            return;
+
+        geom_buf.Open();
+        vtx = (GLfloat*)geom_buf.getVertBufPtr();
+        idx = (GLubyte*)geom_buf.getIdxBufPtr();
+        cmd = (DrawElementsIndirectCommand*)geom_buf.getCmdBufPtr();
+        {
+            vtx[0] = -1.0f;
+            vtx[1] = -1.0f;
+            vtx[2] =  0.0f;
+
+            vtx[3] = +1.0f;
+            vtx[4] = -1.0f;
+            vtx[5] =  0.0f;
+
+            vtx[6] =  0.0f;
+            vtx[7] = +1.0f;
+            vtx[8] =  0.0f;
+
+            idx[0] = 0;
+            idx[1] = 1;
+            idx[2] = 2;
+
+            cmd[0].baseVertex = 0;
+            cmd[0].baseInstance = 0;
+            cmd[0].firstIndex = 0;
+            cmd[0].idxCount = 3;
+            cmd[0].instanceCount = 1;
+        }
+        geom_buf.Close();
+    }
     void EndFrame(void) {
+        glBindVertexArray(geom_buf.get_vao());
+        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_BYTE, 0, 1, 0);
         if (offscreenRender)
             offscreenFB->Blit(current_screen_width, current_screen_height);
     }
@@ -247,6 +497,7 @@ struct Backend::Impl {
     // Various GL specs
     struct Specs {
         // Try to keep in alphabetical order
+        int             nExtensions;
         int             nMaxCombinedTextureImageUnits;
         int             nMaxDrawBuffers;
         int             nMaxElementsIndices;
@@ -261,6 +512,7 @@ struct Backend::Impl {
         const GLubyte*  renderer;
         const GLubyte*  vendor;
         const GLubyte*  version;
+        std::vector<const char*> extensions;
     };
     Specs mSpecs;
 };
@@ -283,3 +535,4 @@ void Backend::EndFrame(void) { mImpl->EndFrame(); }
 void Backend::Resize(int w, int h) { mImpl->Resize(w, h); }
 void Backend::Screenshot(void) { mImpl->Screenshot(); }
 void Backend::DrawFullscreenQuad(void) { mImpl->DrawFullscreenQuad(); }
+void Backend::AddTris(void) { mImpl->AddTris(); }
