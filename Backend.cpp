@@ -14,8 +14,10 @@ static const bool       PIXELATED =                 false;
 static const uint8_t    NUM_QUEUES =                2;
 static const uint8_t    QUEUE_SIZE =                8;
 
+inline void wipe_memory(void *dest, size_t n) { memset(dest, NULL, n); }
+
 struct Framebuffer {
-    explicit Framebuffer(int w, int h) : width(w), height(h) {
+    explicit Framebuffer(uint16_t w, uint16_t h) : width(w), height(h) {
         // TODO(SamNi): I know this is suboptimal.
         glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTextureID);
 
@@ -155,6 +157,9 @@ static Framebuffer *offscreenFB = nullptr;
 
 struct RGBA {
     GLubyte r, g, b, a;
+    RGBA(void) : r(0),g(0),b(0),a(0) { }
+    RGBA(const RGBA& rhs) : r(rhs.r), g(rhs.g), b(rhs.b), a(rhs.a) { }
+    RGBA(GLubyte _r, GLubyte _g, GLubyte _b, GLubyte _a) : r(_r), g(_g), b(_b), a(_a) { }
 };
 
 struct TexCoord32 {
@@ -168,6 +173,63 @@ inline GLuint NormalPack(const glm::vec4& v) {
         ((GLuint)(1023.0f*v.z) << 20) | 
         ((GLuint)(3.0f*v.a) << 30);
 }
+
+struct SurfaceTriangles {
+    SurfaceTriangles(void) { 
+        memset(this, NULL, sizeof(SurfaceTriangles)); 
+    }
+    SurfaceTriangles(const uint32_t nv, const uint32_t nidx) {
+        assert(nv && nidx);
+        memset(this, NULL, sizeof(SurfaceTriangles));
+        vertices = new glm::vec3[nv];
+        indices = new GLushort[nidx];
+        nVertices = nv;
+        nIndices = nidx;
+    }
+    ~SurfaceTriangles(void) {
+        delete[] vertices;
+        delete[] colors;
+        delete[] texture_coordinates;
+        delete[] normals;
+        delete[] indices;
+    }
+    inline uint32_t GetSize(void) const {
+        uint32_t ret = 0;
+        if (nullptr != vertices)
+            ret += sizeof(glm::vec4)*nVertices;
+        if (nullptr != colors)
+            ret += sizeof(glm::vec4)*nVertices;
+        if (nullptr != texture_coordinates)
+            ret += sizeof(glm::vec2)*nVertices;
+        if (nullptr != normals)
+            ret += sizeof(GLuint)*nVertices;
+        if (nullptr != indices)
+            ret += sizeof(GLushort)*nIndices;
+        return ret;
+    }
+    uint32_t nVertices;
+    glm::vec3 *vertices;
+
+    // if there are colors (colors != NULL), it is assumed
+    // that the number of them is the same as the number
+    // of vertices
+    // uint32_t nColors;
+    RGBA *colors;
+
+    // ditto for texture coordinates
+    // uint32_t nTextureCoordinates;
+    glm::u16vec2 *texture_coordinates;
+
+    // ditto for normals
+    GLuint *normals;            // store as 2_10_10_10_REV, use NormalPack()
+
+    // however, not true for indices
+    uint32_t nIndices;
+    GLushort *indices;
+};
+
+static const int NUM_TRIANGLES = 8500;
+SurfaceTriangles st(3*NUM_TRIANGLES, 3*NUM_TRIANGLES);
 
 struct GeometryBuffer {
     /* brainstorm, thoughts, freeform
@@ -240,7 +302,8 @@ struct GeometryBuffer {
         GEO_BUF_ID_FINAL        // unused
     };
     static const int NUM_GEOM_BUF = GEO_BUF_ID_FINAL - VERTEX_ATTR_POSITION;
-    explicit GeometryBuffer(void) : mIsOpen(false) {
+
+    explicit GeometryBuffer(void) : mIsOpen(false), current_index(0) {
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
 
@@ -298,11 +361,11 @@ struct GeometryBuffer {
         }
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_POSITION]);
-        vertBuf = (GLfloat*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        vertBuf = (glm::vec3*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_COLOR]);
         colBuf = (RGBA*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_TEXCOORD]);
-        texCoordBuf = (TexCoord32*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        texCoordBuf = (glm::u16vec2*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_NORMAL]);
         normalBuf = (GLuint*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         idxBuf = (GLushort*)glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
@@ -313,7 +376,6 @@ struct GeometryBuffer {
             LOG(LOG_WARNING, "glMapBuffer(GL_ELEMENT_ARRAY_BUFFER,) returned null");
         if (NULL == cmdBuf)
             LOG(LOG_WARNING, "glMapBuffer(GL_DRAW_INDIRECT_BUFFER,) returned null");
-        glBindVertexArray(0);
 
         mIsOpen = true;
     }
@@ -339,7 +401,6 @@ struct GeometryBuffer {
             LOG(LOG_WARNING, "glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER) failed");
         if (GL_TRUE != glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER))
             LOG(LOG_WARNING, "glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER) failed");
-        glBindVertexArray(0);
  
         vertBuf = nullptr;
         colBuf = nullptr;
@@ -350,26 +411,110 @@ struct GeometryBuffer {
         mIsOpen = false;
     }
     inline bool IsOpen(void) const { return mIsOpen; }
+
+    // caller's responsibility to keep track of the location of the surface
+    uint32_t AddSurface(const SurfaceTriangles& st) {
+        assert(st.nVertices != 0);
+        assert(st.vertices != nullptr);
+        assert(st.indices != nullptr);
+        assert(IsOpen());
+
+        static uint32_t i;
+        auto vtx = get_vertex_buffer_pointer();
+        auto col = get_color_buffer_ptr();
+        auto tex = get_texture_coordinate_buffer_pointer();
+        auto normals = get_normal_buffer_ptr();
+        auto idx = get_index_buffer_ptr();
+
+        for (i = 0;i < st.nVertices;++i) {
+            vtx[i] = st.vertices[i];
+            col[i] = (st.colors != nullptr) ? st.colors[i] : RGBA(255,255,255,255);
+            tex[i] = (st.texture_coordinates != nullptr) ? st.texture_coordinates[i] : glm::u16vec2(0, 0);
+            normals[i] = (st.normals != nullptr) ? st.normals[i] : NormalPack(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+        }
+
+        for (i = 0;i < st.nIndices;++i)
+            idx[i] = st.indices[i];
+
+        current_index  += st.nIndices;
+        return current_index - st.nIndices;
+    }
+    void AddDrawCommand(uint32_t offset, uint32_t nIndices) {
+        assert (IsOpen());
+
+        auto command_buffer = get_command_buffer_ptr();
+        auto& cmd = command_buffer[cmd_queues.get_size()];
+
+        cmd.firstIndex = offset;
+        cmd.idxCount = nIndices;
+        cmd.baseVertex = 0;
+        cmd.baseInstance = 0;
+        cmd.instanceCount = 1;
+
+        cmd_queues.Push();
+    }
+
     inline GLuint get_vao(void) const { return vao; }
-    inline GLuint get_indirect_buf_id(void) const { return buf_id[INDIRECT_DRAW_CMD]; };
-    inline GLfloat *getVertBufPtr(void) const { return vertBuf; }
-    inline RGBA *getColBufPtr(void) const { return colBuf; }
-    inline TexCoord32 *getTexCoordBufPtr(void) const { return texCoordBuf; }
-    inline GLuint *getNormalBufPtr(void) const { return normalBuf; }
-    inline GLushort *getIdxBufPtr(void) const { return idxBuf; }
-    inline DrawElementsIndirectCommand *getCmdBufPtr(void) const { return cmdBuf; }
+    inline GLuint get_indirect_buffer_id(void) const { return buf_id[INDIRECT_DRAW_CMD]; };
+
+    inline glm::vec3 *get_vertex_buffer_pointer(void) const { return vertBuf; }
+    inline RGBA *get_color_buffer_ptr(void) const { return colBuf; }
+    inline glm::u16vec2 *get_texture_coordinate_buffer_pointer(void) const { return texCoordBuf; }
+    inline GLuint *get_normal_buffer_ptr(void) const { return normalBuf; }
+
+    inline GLushort *get_index_buffer_ptr(void) const { return idxBuf; }
+    inline DrawElementsIndirectCommand *get_command_buffer_ptr(void) const { return cmdBuf; }
+
+    // only manages offsets into buf_id[INDIRECT_DRAW_CMD]
+    struct CommandQueues {
+        static const uint8_t NUM_PARTITIONS = 2;
+        static const uint16_t OFFSET = WORLD_INDIRECT_CMD_BUF_SIZE / NUM_PARTITIONS;
+        static const uint16_t PARTITION_SIZE = OFFSET;
+        explicit CommandQueues(void) {
+            current = 0;
+            top[0] = 0;
+            top[1] = 0;
+            base[0] = 0*PARTITION_SIZE;
+            base[1] = 1*PARTITION_SIZE;
+        }
+        void Push(void) {
+            if (top[current] == PARTITION_SIZE) {
+                LOG(LOG_WARNING, "CommandQueue topped out at %u", top);
+                return;
+            }
+            ++top[current];
+        }
+        void Pop(void) {
+            if (top == 0) {
+                LOG(LOG_WARNING, "CommandQueue underflow");
+                return;
+            }
+            --top[current];
+        }
+        inline void Swap(void) { current = (current+1)%2; }
+        inline void Clear(void) { top[current] = 0; }
+        inline uint16_t get_size(void) { return top[current]; }
+        uint16_t top[2];
+        uint16_t base[2];
+        uint8_t current;
+    };
+
+    CommandQueues cmd_queues;
 
 private:
     GLuint buf_id[NUM_GEOM_BUF];
     GLuint vao;
 
-    GLfloat *vertBuf;
+    glm::vec3 *vertBuf;
     RGBA *colBuf;
-    TexCoord32 *texCoordBuf;
+    glm::u16vec2 *texCoordBuf;
     GLuint *normalBuf;
 
     GLushort *idxBuf;
     DrawElementsIndirectCommand *cmdBuf;
+
+    uint32_t current_index;
+
     bool mIsOpen;
 };
 
@@ -430,85 +575,43 @@ struct Backend::Impl {
             offscreenFB->Bind();    
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        geom_buf.cmd_queues.Clear();
     }
+
+    uint32_t loc;
 
     void AddTris(void) {
-        static glm::vec3 *vtx = nullptr;
-        static RGBA *col = nullptr;
-        static TexCoord32 *tex = nullptr;
-        static GLuint *normal = nullptr;
-        static GLushort *idx = nullptr;
-        static DrawElementsIndirectCommand *cmd = nullptr;
-
-        if (vtx || tex || col || idx || cmd)
+        static bool firstTime = true;
+        if (false == firstTime)
             return;
+        firstTime = false;
+        GLushort i;
+        for (i = 0;i < 3*NUM_TRIANGLES;i += 3) {
+            glm::vec3 v0(uniform(-1.0f, 1.0f), uniform(-1.0f, 1.0f), uniform(-1.0f, 1.0f));
+            glm::vec3 v1(v0 + glm::vec3(uniform(-0.03f, 0.03f), uniform(-0.03f, 0.03f), uniform(-0.03f, 0.03f)));
+            glm::vec3 v2(v0 + glm::vec3(uniform(-0.03f, 0.03f), uniform(-0.03f, 0.03f), uniform(-0.03f, 0.03f)));
 
-        geom_buf.Open();
-        vtx = (glm::vec3*)geom_buf.getVertBufPtr();
-        col = (RGBA*)geom_buf.getColBufPtr();
-        tex = (TexCoord32*)geom_buf.getTexCoordBufPtr();
-        normal = (GLuint*)geom_buf.getNormalBufPtr();
-
-        idx = (GLushort*)geom_buf.getIdxBufPtr();
-        cmd = (DrawElementsIndirectCommand*)geom_buf.getCmdBufPtr();
-        {
-            vtx[0] = glm::vec3(-1.0f, 0.0f, 0.0f);
-            vtx[1] = glm::vec3(+1.0f, 0.0f, 0.0f);
-            vtx[2] = glm::vec3( 0.0f,-1.0f, 0.0f);
-            vtx[3] = glm::vec3( 0.0f,+1.0f, 0.0f);
-
-            col[0].r = 255;
-            col[0].g = 0;
-            col[0].b = 0;
-            col[0].a = 255;
-            col[1].r = 0;
-            col[1].g = 0;
-            col[1].b = 255;
-            col[1].a = 255;
-            col[2].r = 0;
-            col[2].g = 0;
-            col[2].b = 0;
-            col[2].a = 0;
-            col[3].r = 255;
-            col[3].g = 0;
-            col[3].b = 255;
-            col[3].a = 255;
-
-            tex[0].u = 0;
-            tex[0].v = 0;
-            tex[1].u = 65535;
-            tex[1].v = 65535;
-            tex[2].u = 65535;
-            tex[2].v = 0;
-            tex[3].u = 0;
-            tex[3].v = 65535;
-
-            normal[0] = NormalPack(glm::vec4(1.0f,0.0f,0.0f,0.0f));
-            normal[1] = NormalPack(glm::vec4(0.0f,1.0f,0.0f,0.20f));
-            normal[2] = NormalPack(glm::vec4(0.0f,0.0f,1.0f,0.65f));
-            normal[3] = NormalPack(glm::vec4(0.0f,1.0f,1.0f,1.0f));
-
-            idx[0] = 0;
-            idx[1] = 1;
-            idx[2] = 2;
-            idx[3] = 0;
-            idx[4] = 1;
-            idx[5] = 3;
-
-            cmd[0].baseVertex = 0;
-            cmd[0].baseInstance = 0;
-            cmd[0].firstIndex = 0;
-            cmd[0].idxCount = 6;
-            cmd[0].instanceCount = 1;
-
+            st.vertices[i+0] = v0;
+            st.vertices[i+1] = v1;
+            st.vertices[i+2] = v2;
+            st.indices[i+0] = i+0;
+            st.indices[i+1] = i+1;
+            st.indices[i+2] = i+2;
         }
-        geom_buf.Close();
+        mImpl->geom_buf.Open();
+        loc = mImpl->geom_buf.AddSurface(st);
+        mImpl->geom_buf.Close();
+
     }
     void EndFrame(void) {
+        geom_buf.Open();
         glBindVertexArray(geom_buf.get_vao());
-        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, 0, 1, 0);
+        mImpl->geom_buf.AddDrawCommand(loc, st.nIndices);
+        geom_buf.Close();
+        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, nullptr, geom_buf.cmd_queues.get_size(), 0);
         if (offscreenRender)
             offscreenFB->Blit(current_screen_width, current_screen_height);
+        geom_buf.cmd_queues.Swap();
     }
     void Resize(int w, int h) {
         glViewport(0, 0, w, h);
