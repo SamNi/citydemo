@@ -11,8 +11,6 @@
 static const int        OFFSCREEN_WIDTH =           256;
 static const int        OFFSCREEN_HEIGHT =          240;
 static const bool       PIXELATED =                 false;
-static const uint8_t    NUM_QUEUES =                2;
-static const uint8_t    QUEUE_SIZE =                8;
 
 inline void wipe_memory(void *dest, size_t n) { memset(dest, NULL, n); }
 
@@ -228,7 +226,7 @@ struct SurfaceTriangles {
     GLushort *indices;
 };
 
-static const int NUM_TRIANGLES = 8500;
+static const int NUM_TRIANGLES = 500;
 SurfaceTriangles st(3*NUM_TRIANGLES, 3*NUM_TRIANGLES);
 
 struct GeometryBuffer {
@@ -442,8 +440,7 @@ struct GeometryBuffer {
     void AddDrawCommand(uint32_t offset, uint32_t nIndices) {
         assert (IsOpen());
 
-        auto command_buffer = get_command_buffer_ptr();
-        auto& cmd = command_buffer[cmd_queues.get_size()];
+        auto& cmd = get_command_buffer_ptr()[cmd_queues.get_top()];
 
         cmd.firstIndex = offset;
         cmd.idxCount = nIndices;
@@ -454,49 +451,51 @@ struct GeometryBuffer {
         cmd_queues.Push();
     }
 
-    inline GLuint get_vao(void) const { return vao; }
-    inline GLuint get_indirect_buffer_id(void) const { return buf_id[INDIRECT_DRAW_CMD]; };
+    GLuint get_vao(void) const { return vao; }
+    GLuint get_indirect_buffer_id(void) const { return buf_id[INDIRECT_DRAW_CMD]; };
 
-    inline glm::vec3 *get_vertex_buffer_pointer(void) const { return vertBuf; }
-    inline RGBA *get_color_buffer_ptr(void) const { return colBuf; }
-    inline glm::u16vec2 *get_texture_coordinate_buffer_pointer(void) const { return texCoordBuf; }
-    inline GLuint *get_normal_buffer_ptr(void) const { return normalBuf; }
+    glm::vec3 *get_vertex_buffer_pointer(void) const { return vertBuf; }
+    RGBA *get_color_buffer_ptr(void) const { return colBuf; }
+    glm::u16vec2 *get_texture_coordinate_buffer_pointer(void) const { return texCoordBuf; }
+    GLuint *get_normal_buffer_ptr(void) const { return normalBuf; }
 
-    inline GLushort *get_index_buffer_ptr(void) const { return idxBuf; }
-    inline DrawElementsIndirectCommand *get_command_buffer_ptr(void) const { return cmdBuf; }
+    GLushort *get_index_buffer_ptr(void) const { return idxBuf; }
+    DrawElementsIndirectCommand *get_command_buffer_ptr(void) const { return cmdBuf; }
 
     // only manages offsets into buf_id[INDIRECT_DRAW_CMD]
     struct CommandQueues {
         static const uint8_t NUM_PARTITIONS = 2;
-        static const uint16_t OFFSET = WORLD_INDIRECT_CMD_BUF_SIZE / NUM_PARTITIONS;
+        static const uint16_t OFFSET = WORLD_NUM_INDIRECT_CMDS / NUM_PARTITIONS;
         static const uint16_t PARTITION_SIZE = OFFSET;
         explicit CommandQueues(void) {
-            current = 0;
-            top[0] = 0;
-            top[1] = 0;
-            base[0] = 0*PARTITION_SIZE;
-            base[1] = 1*PARTITION_SIZE;
+            current_queue = 0;
+            for (int i = 0;i < NUM_PARTITIONS;++i) {
+                top[i] = 0;
+                base[i] = i*PARTITION_SIZE;
+            }
         }
         void Push(void) {
-            if (top[current] == PARTITION_SIZE) {
+            if (top[current_queue] == PARTITION_SIZE) {
                 LOG(LOG_WARNING, "CommandQueue topped out at %u", top);
                 return;
             }
-            ++top[current];
+            ++top[current_queue];
         }
         void Pop(void) {
             if (top == 0) {
                 LOG(LOG_WARNING, "CommandQueue underflow");
                 return;
             }
-            --top[current];
+            --top[current_queue];
         }
-        inline void Swap(void) { current = (current+1)%2; }
-        inline void Clear(void) { top[current] = 0; }
-        inline uint16_t get_size(void) { return top[current]; }
-        uint16_t top[2];
-        uint16_t base[2];
-        uint8_t current;
+        uint16_t GetBaseOffset(void) const { return base[current_queue]; }
+        void Swap(void) { current_queue = (current_queue+1)%NUM_PARTITIONS; }
+        void Clear(void) { top[current_queue] = 0; }
+        uint16_t get_size(void) const { return top[current_queue]; }
+        uint16_t get_top(void) const { return GetBaseOffset() + top[current_queue]; };
+        uint16_t top[NUM_PARTITIONS];
+        uint16_t base[NUM_PARTITIONS];
+        uint8_t current_queue;
     };
 
     CommandQueues cmd_queues;
@@ -605,10 +604,10 @@ struct Backend::Impl {
     }
     void EndFrame(void) {
         geom_buf.Open();
-        glBindVertexArray(geom_buf.get_vao());
         mImpl->geom_buf.AddDrawCommand(loc, st.nIndices);
         geom_buf.Close();
-        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, nullptr, geom_buf.cmd_queues.get_size(), 0);
+        glBindVertexArray(geom_buf.get_vao());
+        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, (void*)(geom_buf.cmd_queues.GetBaseOffset()*sizeof(DrawElementsIndirectCommand)), geom_buf.cmd_queues.get_size(), 0);
         if (offscreenRender)
             offscreenFB->Blit(current_screen_width, current_screen_height);
         geom_buf.cmd_queues.Swap();
