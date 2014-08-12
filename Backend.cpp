@@ -158,7 +158,7 @@ private:
 static Framebuffer *offscreenFB = nullptr;
 
 // for use with GL_UNSIGNED_INT_2_10_10_10_REV
-inline PackedNormal NormalPack(const glm::vec4& v) {
+inline PackedNormal normal_pack(const glm::vec4& v) {
     return ((PackedNormal)(1023.0f*v.x) << 0) | 
         ((PackedNormal)(1023.0f*v.y) << 10) | 
         ((PackedNormal)(1023.0f*v.z) << 20) | 
@@ -174,6 +174,7 @@ struct SurfaceTriangles {
         wipe_memory(this, sizeof(SurfaceTriangles));
         vertices = new glm::vec3[nv];
         texture_coordinates = new TexCoord[nv];
+        normals = new PackedNormal[nv];
         indices = new GLushort[nidx];
         nVertices = nv;
         nIndices = nidx;
@@ -213,7 +214,7 @@ struct SurfaceTriangles {
     TexCoord *texture_coordinates;
 
     // ditto for normals
-    PackedNormal *normals;            // store as 2_10_10_10_REV, use NormalPack()
+    PackedNormal *normals;            // store as 2_10_10_10_REV, use normal_pack()
 
     // however, not true for indices
     uint32_t nIndices;
@@ -411,7 +412,7 @@ struct GeometryBuffer {
         if (NULL == cmdBuf)
             LOG(LOG_WARNING, "glMapBuffer(GL_DRAW_INDIRECT_BUFFER,) returned null");
     }
-    void CloseCommandQueue(void) {
+    void close_command_queue(void) {
         if (nullptr == cmdBuf) {
             LOG(LOG_WARNING, "Redundant CommandQueue closing");
             return;
@@ -424,7 +425,7 @@ struct GeometryBuffer {
     inline bool IsOpen(void) const { return mIsGeometryBufferOpen; }
 
     // caller's responsibility to keep track of the location of the surface
-    uint32_t AddSurface(const SurfaceTriangles& st) {
+    uint32_t add_surface(const SurfaceTriangles& st) {
         assert(st.nVertices != 0);
         assert(st.vertices != nullptr);
         assert(st.indices != nullptr);
@@ -441,7 +442,7 @@ struct GeometryBuffer {
             vtx[i] = st.vertices[i];
             col[i] = (st.colors != nullptr) ? st.colors[i] : RGBA(255,255,255,255);
             tex[i] = (st.texture_coordinates != nullptr) ? st.texture_coordinates[i] : TexCoord(0, 0);
-            normals[i] = (st.normals != nullptr) ? st.normals[i] : NormalPack(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+            normals[i] = (st.normals != nullptr) ? st.normals[i] : normal_pack(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
         }
 
         for (i = 0;i < st.nIndices;++i)
@@ -450,7 +451,7 @@ struct GeometryBuffer {
         current_index  += st.nIndices;
         return current_index - st.nIndices;
     }
-    void AddDrawCommand(uint32_t offset, uint32_t nIndices) {
+    void add_draw_command(uint32_t offset, uint32_t nIndices) {
         assert (nullptr != cmdBuf);
 
         auto& cmd = *get_command_buffer_ptr();
@@ -470,7 +471,7 @@ struct GeometryBuffer {
     glm::vec3 *get_vertex_buffer_pointer(void) const { return m_vertex_attr.vertBuf; }
     RGBA *get_color_buffer_ptr(void) const { return m_vertex_attr.colBuf; }
     TexCoord *get_texture_coordinate_buffer_pointer(void) const { return m_vertex_attr.texCoordBuf; }
-    GLuint *get_normal_buffer_ptr(void) const { return m_vertex_attr.normalBuf; }
+    PackedNormal *get_normal_buffer_ptr(void) const { return m_vertex_attr.normalBuf; }
 
     GLushort *get_index_buffer_ptr(void) const { return idxBuf; }
     DrawElementsIndirectCommand *get_command_buffer_ptr(void) const { return cmdBuf; }
@@ -607,18 +608,21 @@ struct Backend::Impl {
             st.texture_coordinates[i+0] = TexCoord(0, 0);
             st.texture_coordinates[i+1] = TexCoord(65535, 0);
             st.texture_coordinates[i+2] = TexCoord(0, 65535);
+            st.normals[i+0] = normal_pack(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+            st.normals[i+1] = normal_pack(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+            st.normals[i+2] = normal_pack(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
             st.indices[i+0] = i+0;
             st.indices[i+1] = i+1;
             st.indices[i+2] = i+2;
         }
         mImpl->geom_buf.open_geometry_buffer();
-        loc = mImpl->geom_buf.AddSurface(st);
+        loc = mImpl->geom_buf.add_surface(st);
         mImpl->geom_buf.close_geometry_buffer();
 
     }
     void end_frame(void) {
-        mImpl->geom_buf.AddDrawCommand(loc, st.nIndices);
-        geom_buf.CloseCommandQueue();
+        mImpl->geom_buf.add_draw_command(loc, st.nIndices);
+        geom_buf.close_command_queue();
         glBindVertexArray(geom_buf.get_vao());
         glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, (void*)(geom_buf.cmd_queues.get_base_offset_in_bytes()), geom_buf.cmd_queues.get_size(), 0);
         if (offscreenRender)
