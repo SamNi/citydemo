@@ -68,3 +68,86 @@ void checkGL(void) {
     }
 #endif
 }
+
+void APIENTRY debugproc(GLenum source, GLenum type, GLuint id, GLenum severity,
+               GLsizei length, const GLchar *incoming, void *userParam) {
+    static FILE *fout = stderr;
+    static char outMsg[4096] = "<intentionally left blank>";
+    static const char *srcMsg = nullptr;
+    static const char *typeMsg = nullptr;
+    static const char *severityMsg = nullptr;
+    switch (source) {
+    case GL_DEBUG_SOURCE_API:
+        srcMsg = "API";
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+        srcMsg = "Window System";
+        break;
+    case GL_DEBUG_SOURCE_SHADER_COMPILER:
+        srcMsg = "Shader Compiler";
+        break;
+    case GL_DEBUG_SOURCE_THIRD_PARTY:
+        srcMsg = "3rd Party";
+        break;
+    case GL_DEBUG_SOURCE_APPLICATION:
+        srcMsg = "Application";
+        break;
+    case GL_DEBUG_SOURCE_OTHER :
+        srcMsg = "Other";
+        break;
+    default:
+        srcMsg = "???";
+        break;
+    }
+    switch (type) {
+    case GL_DEBUG_TYPE_ERROR:
+        typeMsg = "Error";
+        break;
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        typeMsg = "Deprecated behavior";
+        break;
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        typeMsg = "Undefined behavior";
+        break;
+    case GL_DEBUG_TYPE_PORTABILITY:
+        typeMsg = "Portability";
+        break;
+    case GL_DEBUG_TYPE_PERFORMANCE:
+        typeMsg = "Performance";
+        break;
+    case GL_DEBUG_TYPE_MARKER:
+        typeMsg = "Marker";
+        break;
+    case GL_DEBUG_TYPE_PUSH_GROUP:
+        typeMsg = "Push group";
+        break;
+    case GL_DEBUG_TYPE_POP_GROUP:
+        typeMsg = "Pop group";
+        break;
+    case GL_DEBUG_TYPE_OTHER:
+        typeMsg = "other";
+        break;
+    default:
+        typeMsg = "???";
+        break;
+    }
+    switch (severity) {
+    case GL_DEBUG_SEVERITY_LOW:
+        severityMsg = "Minor";
+        break;
+    case GL_DEBUG_SEVERITY_MEDIUM:
+        severityMsg = "Significant";
+        break;
+    case GL_DEBUG_SEVERITY_HIGH:
+        severityMsg = "Critical";
+        break;
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+        severityMsg = "Info";
+        break;
+    default:
+        severityMsg = "???";
+        break;
+    }
+    sprintf(outMsg, "(%s, %s from %s) #%u\n%s\n\n", severityMsg, typeMsg, srcMsg, id, incoming);
+    fprintf(fout, outMsg);
+}
+
