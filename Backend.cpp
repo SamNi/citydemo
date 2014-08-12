@@ -530,7 +530,7 @@ private:
 
 struct Backend::Impl {
     inline void clear_performance_counters(void) { wipe_memory(&mPerfCounts, sizeof(PerfCounters)); }
-    inline void QueryHardwareSpecs(void) {
+    inline void query_hardware_specs(void) {
         glGetIntegerv(GL_NUM_EXTENSIONS, &mSpecs.nExtensions);
         glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &mSpecs.nMaxCombinedTextureImageUnits);
         glGetIntegerv(GL_MAX_DRAW_BUFFERS, &mSpecs.nMaxDrawBuffers);
@@ -567,7 +567,7 @@ struct Backend::Impl {
         offscreenRender = PIXELATED;
 
         clear_performance_counters();
-        QueryHardwareSpecs();
+        query_hardware_specs();
 
         // Allocate world geometry buffers
 
