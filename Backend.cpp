@@ -53,7 +53,7 @@ struct Framebuffer {
         glClear(GL_COLOR_BUFFER_BIT);
         glBindTexture(GL_TEXTURE_2D, textureID);
         glViewport(0, 0, w, h);
-        Backend::DrawFullscreenQuad();
+        Backend::draw_fullscreen_quad();
     }
     GLuint          framebufferID;
     GLuint          textureID;
@@ -347,14 +347,14 @@ struct GeometryBuffer {
     }
     ~GeometryBuffer(void) {
         if (IsOpen())
-            CloseGeometryBuffer();
+            close_geometry_buffer();
 
         glDeleteBuffers(NUM_GEOM_BUF, buf_id);
         glDeleteVertexArrays(1, &vao);
     }
 
     // opens the entire buffer (this is wasteful)
-    void OpenGeometryBuffer(void) {
+    void open_geometry_buffer(void) {
         if (IsOpen()) {
             LOG(LOG_WARNING, "Redundant GeometryBuffer opening");
             return;
@@ -376,7 +376,7 @@ struct GeometryBuffer {
 
         mIsGeometryBufferOpen = true;
     }
-    void CloseGeometryBuffer(void) {
+    void close_geometry_buffer(void) {
         if (!IsOpen()) {
             LOG(LOG_WARNING, "Redundant GeometryBuffer closing");
             return;
@@ -407,7 +407,7 @@ struct GeometryBuffer {
             return;
         }
 
-        cmdBuf = (DrawElementsIndirectCommand*)glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, cmd_queues.GetBaseOffset()*sizeof(DrawElementsIndirectCommand), cmd_queues.PARTITION_SIZE*sizeof(DrawElementsIndirectCommand), GL_MAP_WRITE_BIT);
+        cmdBuf = (DrawElementsIndirectCommand*)glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, cmd_queues.get_base_offset()*sizeof(DrawElementsIndirectCommand), cmd_queues.PARTITION_SIZE*sizeof(DrawElementsIndirectCommand), GL_MAP_WRITE_BIT);
         if (NULL == cmdBuf)
             LOG(LOG_WARNING, "glMapBuffer(GL_DRAW_INDIRECT_BUFFER,) returned null");
     }
@@ -501,12 +501,12 @@ struct GeometryBuffer {
             }
             --top[current_queue];
         }
-        uint16_t GetBaseOffset(void) const { return base[current_queue]; }
-        uint32_t GetBaseOffsetInBytes(void) const { return GetBaseOffset()*sizeof(DrawElementsIndirectCommand); }
+        uint16_t get_base_offset(void) const { return base[current_queue]; }
+        uint32_t get_base_offset_in_bytes(void) const { return get_base_offset()*sizeof(DrawElementsIndirectCommand); }
         void Swap(void) { current_queue = (current_queue+1)%NUM_PARTITIONS; }
         void Clear(void) { top[current_queue] = 0; }
         uint16_t get_size(void) const { return top[current_queue]; }
-        uint16_t get_top(void) const { return GetBaseOffset() + top[current_queue]; };
+        uint16_t get_top(void) const { return get_base_offset() + top[current_queue]; };
         uint16_t top[NUM_PARTITIONS];
         uint16_t base[NUM_PARTITIONS];
         uint8_t current_queue;
@@ -559,7 +559,7 @@ struct Backend::Impl {
     }
     GeometryBuffer geom_buf;
 
-    bool Startup(int w, int h) {
+    bool startup(int w, int h) {
         // misc. defaults
         current_screen_width = w;
         current_screen_height = h;
@@ -573,11 +573,11 @@ struct Backend::Impl {
 
         return true;
     }
-    void Shutdown(void) {
+    void shutdown(void) {
         // glDelete* calls should go here
     }
 
-    void BeginFrame(void) {
+    void begin_frame(void) {
         ClearPerformanceCounters();
         if (offscreenRender) {
             if (nullptr == offscreenFB)
@@ -586,6 +586,7 @@ struct Backend::Impl {
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         geom_buf.cmd_queues.Clear();
+        geom_buf.OpenCommandQueue();
     }
 
     uint32_t loc;
@@ -610,27 +611,26 @@ struct Backend::Impl {
             st.indices[i+1] = i+1;
             st.indices[i+2] = i+2;
         }
-        mImpl->geom_buf.OpenGeometryBuffer();
+        mImpl->geom_buf.open_geometry_buffer();
         loc = mImpl->geom_buf.AddSurface(st);
-        mImpl->geom_buf.CloseGeometryBuffer();
+        mImpl->geom_buf.close_geometry_buffer();
 
     }
-    void EndFrame(void) {
-        geom_buf.OpenCommandQueue();
+    void end_frame(void) {
         mImpl->geom_buf.AddDrawCommand(loc, st.nIndices);
         geom_buf.CloseCommandQueue();
         glBindVertexArray(geom_buf.get_vao());
-        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, (void*)(geom_buf.cmd_queues.GetBaseOffsetInBytes()), geom_buf.cmd_queues.get_size(), 0);
+        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, (void*)(geom_buf.cmd_queues.get_base_offset_in_bytes()), geom_buf.cmd_queues.get_size(), 0);
         if (offscreenRender)
             offscreenFB->Blit(current_screen_width, current_screen_height);
         geom_buf.cmd_queues.Swap();
     }
-    void Resize(int w, int h) {
+    void resize(int w, int h) {
         glViewport(0, 0, w, h);
         current_screen_width = w;
         current_screen_height = h;
     }
-    void Screenshot(void) {
+    void screenshot(void) {
         uint8_t *buf = nullptr;
         int nBytes = 0;
         png_image image = { NULL };
@@ -657,8 +657,8 @@ struct Backend::Impl {
         delete[] buf;
     }
 
-    void DisableBlending(void) { glDisable(GL_BLEND); }
-    void DrawFullscreenQuad(void) {
+    void disable_blending(void) { glDisable(GL_BLEND); }
+    void draw_fullscreen_quad(void) {
         static bool firstTime = true;
         // these are all in UpLeft, DownLeft, DownRight, UpRight order
         static const GLfloat points[] = {
@@ -796,19 +796,19 @@ struct Backend::Impl {
 std::unique_ptr<Backend::Impl> Backend::mImpl = nullptr;
 
 // public interface
-bool Backend::Startup(int w, int h) {
+bool Backend::startup(int w, int h) {
     mImpl = std::unique_ptr<Impl>(new Impl());
-    return mImpl->Startup(w, h);
+    return mImpl->startup(w, h);
 }
 
-void Backend::Shutdown(void) {
-    mImpl->Shutdown();
+void Backend::shutdown(void) {
+    mImpl->shutdown();
     mImpl.reset(nullptr);
 }
 
-void Backend::BeginFrame(void) { mImpl->BeginFrame(); }
-void Backend::EndFrame(void) { mImpl->EndFrame(); }
-void Backend::Resize(int w, int h) { mImpl->Resize(w, h); }
-void Backend::Screenshot(void) { mImpl->Screenshot(); }
-void Backend::DrawFullscreenQuad(void) { mImpl->DrawFullscreenQuad(); }
+void Backend::begin_frame(void) { mImpl->begin_frame(); }
+void Backend::end_frame(void) { mImpl->end_frame(); }
+void Backend::resize(int w, int h) { mImpl->resize(w, h); }
+void Backend::screenshot(void) { mImpl->screenshot(); }
+void Backend::draw_fullscreen_quad(void) { mImpl->draw_fullscreen_quad(); }
 void Backend::AddTris(void) { mImpl->AddTris(); }
