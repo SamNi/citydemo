@@ -20,14 +20,14 @@
 
 class Backend {
 public:
-    static bool Startup(int w, int h);
-    static void BeginFrame(void);
-    static void EndFrame(void);
-    static void Shutdown(void);
-    static void Resize(int w, int h);
-    static void Screenshot(void);
-    static void DrawFullscreenQuad(void);
-    static void AddTris(void);
+    static bool startup(int w, int h);
+    static void begin_frame(void);
+    static void end_frame(void);
+    static void shutdown(void);
+    static void resize(int w, int h);
+    static void screenshot(void);
+    static void draw_fullscreen_quad(void);
+    static void add_tris(void);
 
 private:
     struct Impl;

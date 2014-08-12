@@ -401,7 +401,7 @@ struct GeometryBuffer {
         idxBuf = nullptr;
         mIsGeometryBufferOpen = false;
     }
-    void OpenCommandQueue(void) {
+    void open_command_queue(void) {
         if (nullptr != cmdBuf) {
             LOG(LOG_WARNING, "Redundant CommandQueue opening");
             return;
@@ -529,7 +529,7 @@ private:
 };
 
 struct Backend::Impl {
-    inline void ClearPerformanceCounters(void) { wipe_memory(&mPerfCounts, sizeof(PerfCounters)); }
+    inline void clear_performance_counters(void) { wipe_memory(&mPerfCounts, sizeof(PerfCounters)); }
     inline void QueryHardwareSpecs(void) {
         glGetIntegerv(GL_NUM_EXTENSIONS, &mSpecs.nExtensions);
         glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &mSpecs.nMaxCombinedTextureImageUnits);
@@ -566,7 +566,7 @@ struct Backend::Impl {
         screenshotCounter = 0;
         offscreenRender = PIXELATED;
 
-        ClearPerformanceCounters();
+        clear_performance_counters();
         QueryHardwareSpecs();
 
         // Allocate world geometry buffers
@@ -578,7 +578,7 @@ struct Backend::Impl {
     }
 
     void begin_frame(void) {
-        ClearPerformanceCounters();
+        clear_performance_counters();
         if (offscreenRender) {
             if (nullptr == offscreenFB)
                 offscreenFB = new Framebuffer(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
@@ -586,12 +586,12 @@ struct Backend::Impl {
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         geom_buf.cmd_queues.Clear();
-        geom_buf.OpenCommandQueue();
+        geom_buf.open_command_queue();
     }
 
     uint32_t loc;
 
-    void AddTris(void) {
+    void add_tris(void) {
         static bool firstTime = true;
         if (false == firstTime)
             return;
@@ -748,11 +748,11 @@ struct Backend::Impl {
         glBindVertexArray(0);
     }
 
-    void EnableAdditiveBlending(void) {
+    void enable_additive_blending(void) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
     }
-    void EnableBlending(void) {
+    void enable_blending(void) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
@@ -811,4 +811,4 @@ void Backend::end_frame(void) { mImpl->end_frame(); }
 void Backend::resize(int w, int h) { mImpl->resize(w, h); }
 void Backend::screenshot(void) { mImpl->screenshot(); }
 void Backend::draw_fullscreen_quad(void) { mImpl->draw_fullscreen_quad(); }
-void Backend::AddTris(void) { mImpl->AddTris(); }
+void Backend::add_tris(void) { mImpl->add_tris(); }
