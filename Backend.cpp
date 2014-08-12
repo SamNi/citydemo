@@ -519,10 +519,6 @@ private:
     GLuint vao;
 
     VertexAttributePointers m_vertex_attr;
-    glm::vec3 *vertBuf;
-    RGBA *colBuf;
-    TexCoord *texCoordBuf;
-    GLuint *normalBuf;
 
     GLushort *idxBuf;
     DrawElementsIndirectCommand *cmdBuf;
