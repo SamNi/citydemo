@@ -223,6 +223,13 @@ struct SurfaceTriangles {
 static const int NUM_TRIANGLES = 250;
 SurfaceTriangles st(3*NUM_TRIANGLES, 3*NUM_TRIANGLES);
 
+struct VertexAttributePointers {
+    glm::vec3 *vertBuf;
+    RGBA *colBuf;
+    TexCoord *texCoordBuf;
+    GLuint *normalBuf;
+};
+
 struct GeometryBuffer {
     /* brainstorm, thoughts, freeform
     what should a draw queue have?
@@ -345,6 +352,7 @@ struct GeometryBuffer {
         glDeleteBuffers(NUM_GEOM_BUF, buf_id);
         glDeleteVertexArrays(1, &vao);
     }
+
     // opens the entire buffer (this is wasteful)
     void OpenGeometryBuffer(void) {
         if (IsOpen()) {
@@ -353,40 +361,20 @@ struct GeometryBuffer {
         }
         glBindVertexArray(vao);
         glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_POSITION]);
-        vertBuf = (glm::vec3*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        m_vertex_attr.vertBuf = (glm::vec3*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_COLOR]);
-        colBuf = (RGBA*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        m_vertex_attr.colBuf = (RGBA*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_TEXCOORD]);
-        texCoordBuf = (TexCoord*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        m_vertex_attr.texCoordBuf = (TexCoord*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_NORMAL]);
-        normalBuf = (GLuint*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        m_vertex_attr.normalBuf = (GLuint*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         idxBuf = (GLushort*)glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
-        if (!(vertBuf && colBuf && texCoordBuf))
+        if (!(m_vertex_attr.vertBuf && m_vertex_attr.colBuf && m_vertex_attr.texCoordBuf))
             LOG(LOG_WARNING, "glMapBuffer(GL_ARRAY_BUFFER,) returned null");
         if (NULL == idxBuf)
             LOG(LOG_WARNING, "glMapBuffer(GL_ELEMENT_ARRAY_BUFFER,) returned null");
 
         mIsGeometryBufferOpen = true;
-    }
-    void OpenCommandQueue(void) {
-        if (nullptr != cmdBuf) {
-            LOG(LOG_WARNING, "Redundant CommandQueue opening");
-            return;
-        }
-
-        cmdBuf = (DrawElementsIndirectCommand*)glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, cmd_queues.GetBaseOffset()*sizeof(DrawElementsIndirectCommand), cmd_queues.PARTITION_SIZE*sizeof(DrawElementsIndirectCommand), GL_MAP_WRITE_BIT);
-        if (NULL == cmdBuf)
-            LOG(LOG_WARNING, "glMapBuffer(GL_DRAW_INDIRECT_BUFFER,) returned null");
-    }
-    void CloseCommandQueue(void) {
-        if (nullptr == cmdBuf) {
-            LOG(LOG_WARNING, "Redundant CommandQueue closing");
-            return;
-        }
-
-        if (GL_TRUE != glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER))
-            LOG(LOG_WARNING, "glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER) failed");
-        cmdBuf = nullptr;
     }
     void CloseGeometryBuffer(void) {
         if (!IsOpen()) {
@@ -408,13 +396,30 @@ struct GeometryBuffer {
             LOG(LOG_WARNING, "glUnmapBuffer(GL_ARRAY_BUFFER) failed on VERTEX_ATTR_NORMAL");
         if (GL_TRUE != glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER))
             LOG(LOG_WARNING, "glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER) failed");
- 
-        vertBuf = nullptr;
-        colBuf = nullptr;
-        texCoordBuf = nullptr;
-        normalBuf = nullptr;
+
+        wipe_memory(&m_vertex_attr, sizeof(m_vertex_attr));
         idxBuf = nullptr;
         mIsGeometryBufferOpen = false;
+    }
+    void OpenCommandQueue(void) {
+        if (nullptr != cmdBuf) {
+            LOG(LOG_WARNING, "Redundant CommandQueue opening");
+            return;
+        }
+
+        cmdBuf = (DrawElementsIndirectCommand*)glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, cmd_queues.GetBaseOffset()*sizeof(DrawElementsIndirectCommand), cmd_queues.PARTITION_SIZE*sizeof(DrawElementsIndirectCommand), GL_MAP_WRITE_BIT);
+        if (NULL == cmdBuf)
+            LOG(LOG_WARNING, "glMapBuffer(GL_DRAW_INDIRECT_BUFFER,) returned null");
+    }
+    void CloseCommandQueue(void) {
+        if (nullptr == cmdBuf) {
+            LOG(LOG_WARNING, "Redundant CommandQueue closing");
+            return;
+        }
+
+        if (GL_TRUE != glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER))
+            LOG(LOG_WARNING, "glUnmapBuffer(GL_DRAW_INDIRECT_BUFFER) failed");
+        cmdBuf = nullptr;
     }
     inline bool IsOpen(void) const { return mIsGeometryBufferOpen; }
 
@@ -462,10 +467,10 @@ struct GeometryBuffer {
     GLuint get_vao(void) const { return vao; }
     GLuint get_indirect_buffer_id(void) const { return buf_id[INDIRECT_DRAW_CMD]; };
 
-    glm::vec3 *get_vertex_buffer_pointer(void) const { return vertBuf; }
-    RGBA *get_color_buffer_ptr(void) const { return colBuf; }
-    TexCoord *get_texture_coordinate_buffer_pointer(void) const { return texCoordBuf; }
-    GLuint *get_normal_buffer_ptr(void) const { return normalBuf; }
+    glm::vec3 *get_vertex_buffer_pointer(void) const { return m_vertex_attr.vertBuf; }
+    RGBA *get_color_buffer_ptr(void) const { return m_vertex_attr.colBuf; }
+    TexCoord *get_texture_coordinate_buffer_pointer(void) const { return m_vertex_attr.texCoordBuf; }
+    GLuint *get_normal_buffer_ptr(void) const { return m_vertex_attr.normalBuf; }
 
     GLushort *get_index_buffer_ptr(void) const { return idxBuf; }
     DrawElementsIndirectCommand *get_command_buffer_ptr(void) const { return cmdBuf; }
@@ -513,6 +518,7 @@ private:
     GLuint buf_id[NUM_GEOM_BUF];
     GLuint vao;
 
+    VertexAttributePointers m_vertex_attr;
     glm::vec3 *vertBuf;
     RGBA *colBuf;
     TexCoord *texCoordBuf;
