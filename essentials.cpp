@@ -71,11 +71,17 @@ void checkGL(void) {
 
 void APIENTRY debugproc(GLenum source, GLenum type, GLuint id, GLenum severity,
                GLsizei length, const GLchar *incoming, void *userParam) {
+    static std::multiset<GLuint> past_errs;
+    static const uint8_t MAX_ERR_OCCURRENCES = 12;
     static FILE *fout = stderr;
     static char outMsg[4096] = "<intentionally left blank>";
     static const char *srcMsg = nullptr;
     static const char *typeMsg = nullptr;
     static const char *severityMsg = nullptr;
+
+    if (past_errs.count(id) > MAX_ERR_OCCURRENCES)
+        return;
+
     switch (source) {
     case GL_DEBUG_SOURCE_API:
         srcMsg = "API";
@@ -147,7 +153,12 @@ void APIENTRY debugproc(GLenum source, GLenum type, GLuint id, GLenum severity,
         severityMsg = "???";
         break;
     }
-    sprintf(outMsg, "(%s, %s from %s) #%u\n%s\n\n", severityMsg, typeMsg, srcMsg, id, incoming);
+    sprintf(outMsg, "(%s, %s from %s) #%u\n%s\n", severityMsg, typeMsg, srcMsg, id, incoming);
     fprintf(fout, outMsg);
+
+    past_errs.emplace(id);
+    if (past_errs.count(id) == MAX_ERR_OCCURRENCES) {
+        fprintf(fout, "This is the last time I will report message %u.\n", id);
+    }
 }
 
