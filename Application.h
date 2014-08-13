@@ -7,11 +7,11 @@ public:
     int Run(void);
 
 private:
-    bool Startup(void);
+    bool startup(void);
     bool Done(void);
     void Update(uint32_t delta_ms);
-    void Render(void);
-    void Shutdown(void);
+    void render(void);
+    void shutdown(void);
 };
 
 #endif  // APPLICATION_H_

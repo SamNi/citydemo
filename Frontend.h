@@ -2,14 +2,19 @@
 #define FRONTEND_H_
 #include "./essentials.h"
 #include "GLM.h"
-#include "IRenderer.h"
 
-namespace Frontend {
+class Frontend {
+public:
+    static bool startup(int w, int h);
+    static void strafe(const glm::vec3& dir);
+    static void mouselook(float delta_x, float delta_y);
+    static void move(const glm::vec3& dir);
+    static void render();
+    static void shutdown(void);
 
-bool Startup(int w, int h);
-void Shutdown(void);
-const IRenderer* getRenderer(void);
-
-}  // namespace Frontend
+private:
+    struct Impl;
+    static std::unique_ptr<Impl> mImpl;
+};
 
 #endif  // FRONTEND_H_
