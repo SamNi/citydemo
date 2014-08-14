@@ -8,8 +8,8 @@
 
 #pragma warning(disable : 4800)
 
-static const int        OFFSCREEN_WIDTH =           256;
-static const int        OFFSCREEN_HEIGHT =          240;
+static const int        OFFSCREEN_WIDTH =           1024;
+static const int        OFFSCREEN_HEIGHT =          1024;
 static const bool       PIXELATED =                 false;
 
 typedef glm::u8vec4 RGBA;
@@ -175,7 +175,7 @@ struct SurfaceTriangles {
         vertices = new glm::vec3[nv];
         texture_coordinates = new TexCoord[nv];
         normals = new PackedNormal[nv];
-        indices = new GLushort[nidx];
+        indices = new GLuint[nidx];
         nVertices = nv;
         nIndices = nidx;
     }
@@ -197,7 +197,7 @@ struct SurfaceTriangles {
         if (nullptr != normals)
             ret += sizeof(GLuint)*nVertices;
         if (nullptr != indices)
-            ret += sizeof(GLushort)*nIndices;
+            ret += sizeof(GLuint)*nIndices;
         return ret;
     }
     uint32_t nVertices;
@@ -218,10 +218,10 @@ struct SurfaceTriangles {
 
     // however, not true for indices
     uint32_t nIndices;
-    GLushort *indices;
+    GLuint *indices;
 };
 
-static const int NUM_TRIANGLES = 250;
+static const int NUM_TRIANGLES = 1000;
 SurfaceTriangles st(3*NUM_TRIANGLES, 3*NUM_TRIANGLES);
 
 struct VertexAttributePointers {
@@ -288,7 +288,7 @@ struct GeometryBuffer {
     static const uint32_t WORLD_COLOR_BUF_SIZE = WORLD_NUM_COLOR*4*sizeof(GLubyte); // one byte per component, four components
     static const uint32_t WORLD_TEXCOORD_BUF_SIZE = WORLD_NUM_COLOR*2*sizeof(GLushort); // 1 ushort per texture coordinate
     static const uint32_t WORLD_NORMAL_BUF_SIZE = WORLD_NUM_NORMAL*sizeof(uint32_t); // a single GL_UNSIGNED_INT_10_10_10_2
-    static const uint32_t WORLD_IDX_BUF_SIZE = WORLD_NUM_IDX*sizeof(GLushort); // a single ushort for the index
+    static const uint32_t WORLD_IDX_BUF_SIZE = WORLD_NUM_IDX*sizeof(GLuint); // a single ushort for the index
     static const uint32_t WORLD_INDIRECT_CMD_BUF_SIZE = WORLD_NUM_INDIRECT_CMDS*sizeof(DrawElementsIndirectCommand);
 
     static const GLenum GEOMETRY_BUF_STORAGE_FLAGS = GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT;
@@ -369,7 +369,7 @@ struct GeometryBuffer {
         m_vertex_attr.texCoordBuf = (TexCoord*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_NORMAL]);
         m_vertex_attr.normalBuf = (GLuint*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        idxBuf = (GLushort*)glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
+        idxBuf = (GLuint*)glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
         if (!(m_vertex_attr.vertBuf && m_vertex_attr.colBuf && m_vertex_attr.texCoordBuf))
             LOG(LOG_WARNING, "glMapBuffer(GL_ARRAY_BUFFER,) returned null");
         if (NULL == idxBuf)
@@ -473,7 +473,7 @@ struct GeometryBuffer {
     TexCoord *get_texture_coordinate_buffer_pointer(void) const { return m_vertex_attr.texCoordBuf; }
     PackedNormal *get_normal_buffer_ptr(void) const { return m_vertex_attr.normalBuf; }
 
-    GLushort *get_index_buffer_ptr(void) const { return idxBuf; }
+    GLuint *get_index_buffer_ptr(void) const { return idxBuf; }
     DrawElementsIndirectCommand *get_command_buffer_ptr(void) const { return cmdBuf; }
 
     // only manages offsets into buf_id[INDIRECT_DRAW_CMD]
@@ -521,7 +521,7 @@ private:
 
     VertexAttributePointers m_vertex_attr;
 
-    GLushort *idxBuf;
+    GLuint *idxBuf;
     DrawElementsIndirectCommand *cmdBuf;
 
     uint32_t current_index;
@@ -547,7 +547,9 @@ struct Backend::Impl {
         mSpecs.renderer = glGetString(GL_RENDERER);
         mSpecs.vendor = glGetString(GL_VENDOR);
         mSpecs.version = glGetString(GL_VERSION);
-
+        LOG(LOG_INFORMATION, "%s", mSpecs.renderer);
+        LOG(LOG_INFORMATION, "%s", mSpecs.vendor);
+        LOG(LOG_INFORMATION, "%s", mSpecs.version);
         mSpecs.extensions.resize(mSpecs.nExtensions, "<null>");
 
         for (int i = 0;i < mSpecs.nExtensions;++i) {
@@ -597,11 +599,11 @@ struct Backend::Impl {
         if (false == firstTime)
             return;
         firstTime = false;
-        GLushort i;
+        GLuint i;
         for (i = 0;i < 3*NUM_TRIANGLES;i += 3) {
-            glm::vec3 v0(uniform(-1.0f, 1.0f), uniform(-1.0f, 1.0f), uniform(-1.0f, 1.0f));
-            glm::vec3 v1(v0 + glm::vec3(uniform(0.0f, 0.5f), uniform(0.0f, 0.5f), 0.0f));
-            glm::vec3 v2(v0 + glm::vec3(uniform(0.0f, 0.5f), uniform(0.0f, 0.5f), 0.0f));
+            glm::vec3 v0(uniform(-1.5f, 1.5f), uniform(-1.5f, 1.5f), uniform(-1.5f, 1.5f));
+            glm::vec3 v1(v0 + glm::vec3(uniform(-0.25f, 0.25f), uniform(-0.25f, 0.25f), uniform(-0.25f, 0.25f)));
+            glm::vec3 v2(v0 + glm::vec3(uniform(-0.25f, 0.25f), uniform(-0.25f, 0.25f), uniform(-0.25f, 0.25f)));
             st.vertices[i+0] = v0;
             st.vertices[i+1] = v1;
             st.vertices[i+2] = v2;
@@ -624,7 +626,7 @@ struct Backend::Impl {
         mImpl->geom_buf.add_draw_command(loc, st.nIndices);
         geom_buf.close_command_queue();
         glBindVertexArray(geom_buf.get_vao());
-        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_SHORT, (void*)(geom_buf.cmd_queues.get_base_offset_in_bytes()), geom_buf.cmd_queues.get_size(), 0);
+        glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, (void*)(geom_buf.cmd_queues.get_base_offset_in_bytes()), geom_buf.cmd_queues.get_size(), 0);
         if (offscreenRender)
             offscreenFB->Blit(current_screen_width, current_screen_height);
         geom_buf.cmd_queues.Swap();
@@ -644,16 +646,18 @@ struct Backend::Impl {
 
         LOG(LOG_INFORMATION, "Screenshot %dx%d to %s", current_screen_width, current_screen_height, filename);
 
-        nBytes = current_screen_width*current_screen_height*4*sizeof(uint8_t);
+        nBytes = current_screen_width*current_screen_height*3*sizeof(uint8_t);
         buf = new uint8_t[nBytes];
 
-        glReadPixels(0, 0, current_screen_width, current_screen_height, GL_RGBA, GL_UNSIGNED_BYTE, buf);
-        imgflip(current_screen_width, current_screen_height, 4, buf);
+        //glReadPixels(0, 0, current_screen_width, current_screen_height, GL_RGBA, GL_UNSIGNED_BYTE, buf);
+        glReadPixels(0, 0, current_screen_width, current_screen_height, GL_RGB, GL_UNSIGNED_BYTE, buf);
+        imgflip(current_screen_width, current_screen_height, 3, buf);
 
         image.width = current_screen_width;
         image.height = current_screen_height;
         image.version = PNG_IMAGE_VERSION;
-        image.format = PNG_FORMAT_RGBA;
+        //image.format = PNG_FORMAT_RGBA;
+        image.format = PNG_FORMAT_RGB;
 
         if (!png_image_write_to_file(&image, filename, 0, (void*)buf, 0, nullptr))
             LOG(LOG_WARNING, "Failed to write screenshot to %s", filename);
@@ -730,25 +734,9 @@ struct Backend::Impl {
             glEnableVertexAttribArray(2);
             glEnableVertexAttribArray(3);
             checkGL();
-
-            glGetIntegerv(GL_CURRENT_PROGRAM, &progHandle);
-            loc = glGetUniformLocation(progHandle, "modelView");
-            loc2 = glGetUniformLocation(progHandle, "projection");
-            firstTime = false;
-        } else
+       } else
             glBindVertexArray(vao);
-
-        static float angle = 0.0f;
-        static glm::mat4 modelView;
-        static glm::mat4 projection;
-
-        modelView = glm::rotate(angle, glm::vec3(0.0f,0.0f,1.0f));
-        modelView *= glm::lookAt(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-        projection = glm::perspective(glm::radians(75.0f), (float)current_screen_width/current_screen_height, 0.01f, 100.0f);
-        glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(modelView));
-        glUniformMatrix4fv(loc2, 1, GL_FALSE, glm::value_ptr(projection));
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-        angle += 0.01f;
         glBindVertexArray(0);
     }
 
@@ -759,6 +747,20 @@ struct Backend::Impl {
     void enable_blending(void) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
+
+    void enable_depth_testing(void) { glEnable(GL_DEPTH_TEST); }
+    void disable_depth_testing(void) { glDisable(GL_DEPTH_TEST); }
+
+    void set_modelview(const glm::mat4x4& m) {
+        GLint program_handle;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &program_handle);
+        glUniformMatrix4fv(glGetUniformLocation(program_handle, "modelView"), 1, GL_FALSE, glm::value_ptr(m));
+    }
+    void set_projection(const glm::mat4x4& m) {
+        GLint program_handle;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &program_handle);
+        glUniformMatrix4fv(glGetUniformLocation(program_handle, "projection"), 1, GL_FALSE, glm::value_ptr(m));
     }
 
     int current_screen_width;
@@ -816,3 +818,12 @@ void Backend::resize(int w, int h) { mImpl->resize(w, h); }
 void Backend::screenshot(void) { mImpl->screenshot(); }
 void Backend::draw_fullscreen_quad(void) { mImpl->draw_fullscreen_quad(); }
 void Backend::add_tris(void) { mImpl->add_tris(); }
+
+void Backend::set_modelview(const glm::mat4x4& m) { mImpl->set_modelview(m); }
+void Backend::set_projection(const glm::mat4x4& m) { mImpl->set_projection(m); }
+
+void Backend::enable_depth_testing(void) { mImpl->enable_depth_testing(); }
+void Backend::disable_depth_testing(void) { mImpl->disable_depth_testing(); }
+void Backend::enable_blending(void) { mImpl->enable_blending(); }
+void Backend::enable_additive_blending(void) { mImpl->enable_additive_blending(); }
+void Backend::disable_blending(void) { mImpl->disable_blending(); }

@@ -12,6 +12,8 @@ public:
     static void render();
     static void shutdown(void);
 
+    static void change_fov(float fov);
+
 private:
     struct Impl;
     static std::unique_ptr<Impl> mImpl;

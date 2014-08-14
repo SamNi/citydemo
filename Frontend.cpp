@@ -88,6 +88,19 @@ struct Camera {
     inline void set_position(const glm::vec3& p) { m_camera_position = p; m_modelview_dirty = true; }
     inline const glm::vec3 get_position(void) const { return m_camera_position; }
 
+    inline void change_fov(float fov) {
+        static const float CHANGE_FOV_SENSITIVITY = glm::pi<float>()/32.0f;
+        static const float MIN_FOV = glm::radians(0.5f), MAX_FOV = glm::radians(179.5f);
+        m_field_of_view -= CHANGE_FOV_SENSITIVITY*fov;
+
+        if (m_field_of_view < MIN_FOV)
+            m_field_of_view = MIN_FOV;
+        else if (m_field_of_view > MAX_FOV)
+            m_field_of_view = MAX_FOV;
+
+        m_projection_dirty = true;
+        LOG(LOG_TRACE, "Fov is now %f degrees", glm::degrees(m_field_of_view));
+    }
 private:
     inline void recompute_modelview(void) {
         m_ret_modelview = glm::lookAt(m_camera_position, m_camera_view, m_camera_up);
@@ -174,3 +187,5 @@ void Frontend::shutdown(void) {
     mImpl->shutdown();
     mImpl.reset(nullptr);
 }
+
+void Frontend::change_fov(float fov) { mImpl->cam.change_fov(fov); }

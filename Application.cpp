@@ -1,6 +1,7 @@
 #include "./citydemo.h"
 #include "./LuaBindings.h"
 #include "Frontend.h"
+#include "./Input.h"
 
 int screen_width =              1600;
 int screen_height =             900;
@@ -18,8 +19,6 @@ bool vsync =                    true;
 
 static void size_callback(GLFWwindow *, int, int);
 static void error_callback(int, const char *);
-static void key_callback(GLFWwindow *, int, int, int, int);
-static void cursor_movement_callback(GLFWwindow *, double, double);
 
 // defined in essentials.cpp
 void APIENTRY debugproc(GLenum source, GLenum type, GLuint id, GLenum severity,
@@ -55,22 +54,7 @@ int Application::Run(void) {
             glfwPollEvents();
             glfwSwapBuffers(window);
         }
-#if 0
-// actually, maybe glfwSwapbuffers() does this for me, but I don't know.
-// investigation says it relies on SwapBuffers() on win32, which I don't know 
-// if it sleeps or not. Run-time profiling strongly suggests that it does,
-// but leaving this here for now
-        else {
-            // experimentally adjust this
-            static double sleepScaleFactor =       0.8;
-            // sleep off most of the rest of the time we have left and
-            // give some precious, but unneeded cycles to the rest of
-            // the program
-            uint32_t sleepOffTime = (uint32_t)(1000.0*sleepScaleFactor*remaining);
-            LOG(LOG_TRACE, "%u", sleepOffTime);
-            //Sleep(sleepOffTime); 
-        }
-#endif
+
     }
 
     shutdown();
@@ -97,10 +81,8 @@ bool Application::startup(void) {
     }
     glfwSetWindowPos(window, screen_pos_x, screen_pos_y);
     glfwMakeContextCurrent(window);
-    glfwSetKeyCallback(window, key_callback);
-    glfwSetCursorPosCallback(window, cursor_movement_callback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetWindowSizeCallback(window, size_callback);
+    Input::startup(window);
 
     // GLEW boilerplate
     glewExperimental = GL_TRUE;
@@ -136,7 +118,6 @@ bool Application::Done(void) { return static_cast<bool>(glfwWindowShouldClose(wi
 
 void Application::Update(uint32_t delta_ms) {
     // Gather input
-    // ...
 
     // Update world state
 }
@@ -163,63 +144,12 @@ void Application::shutdown(void) {
 }
 
 // GLFW callbacks
+static void error_callback(int err, const char *descr) {
+    LOG(LOG_CRITICAL, "glfw says %s with code %d", descr, err);
+}
 static void size_callback(GLFWwindow *window, int w, int h) {
     Backend::resize(w, h);
     screen_width = w;
     screen_height = h;
     aspect_ratio = static_cast<float>(w)/h;
-}
-static void error_callback(int err, const char *descr) {
-    LOG(LOG_CRITICAL, "glfw says %s with code %d", descr, err);
-}
-static void key_callback(GLFWwindow *window, int key, int scancode,
-                         int action, int mods) {
-    if (action != GLFW_PRESS)
-        return;
-
-    switch (key) {
-    case GLFW_KEY_F12:
-        Backend::screenshot();
-        break;
-    case GLFW_KEY_W:
-        Frontend::strafe(-glm::vec3(0.0f, 0.0f,-1.0f));
-        break;
-    case GLFW_KEY_A:
-        Frontend::strafe(-glm::vec3(1.0f, 0.0f, 0.0f));
-        break;
-    case GLFW_KEY_S:
-        Frontend::strafe(-glm::vec3(0.0f, 0.0f, 1.0f));
-        break;
-    case GLFW_KEY_D:
-        Frontend::strafe(-glm::vec3(-1.0f, 0.0f, 0.0f));
-        break;
-    case GLFW_KEY_Q:
-        // roll
-        break;
-    case GLFW_KEY_E:
-        // roll other way
-        break;
-    case GLFW_KEY_SPACE:
-        Frontend::strafe(-glm::vec3(0.0f,-1.0f, 0.0f));
-        break;
-    case GLFW_KEY_C:
-        Frontend::strafe(-glm::vec3(0.0f, 1.0f, 0.0f));
-        break;
-    case GLFW_KEY_ESCAPE:
-        glfwSetWindowShouldClose(window, GL_TRUE);
-        break;
-    }
-}
-
-static void cursor_movement_callback(GLFWwindow *window, double delta_x, double delta_y) {
-    // transform screen coordinates to the usual [-1..1], [1..1] that we're used to
-    // positive X and Y go to the upper right
-    static double old_dx, old_dy;
-    static double _dx = 0.0f, _dy = 0.0f;
-    old_dx = _dx;
-    old_dy = _dy;
-    _dx =  2.0*( (delta_x / screen_width) - 0.5 );
-    _dy = -2.0*( (delta_y / screen_height) - 0.5 );
-
-    Frontend::mouselook(_dx - old_dx, _dy - old_dy);
 }
