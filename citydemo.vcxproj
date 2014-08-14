@@ -110,6 +110,7 @@
     <ClCompile Include="Backend.cpp" />
     <ClCompile Include="essentials.cpp" />
     <ClCompile Include="Frontend.cpp" />
+    <ClCompile Include="Input.cpp" />
     <ClCompile Include="LuaBindings.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
@@ -125,6 +126,7 @@
     <ClInclude Include="Frontend.h" />
     <ClInclude Include="GL.h" />
     <ClInclude Include="GLM.h" />
+    <ClInclude Include="Input.h" />
     <ClInclude Include="LuaBindings.h" />
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="ResourceManager.h" />
