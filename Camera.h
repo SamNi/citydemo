@@ -8,9 +8,6 @@
 // TODO(SamNi): Look into gimbal lock, quaternions, determine if you
 // really need to do something more sophisticated than what we've
 // got now
-static const glm::vec3 CAMERA_I_AXIS(1.0, 0.0, 0.0);
-static const glm::vec3 CAMERA_J_AXIS(0.0, 1.0, 0.0);
-static const glm::vec3 CAMERA_K_AXIS(0.0, 0.0, 1.0);
 
 struct Camera {
     explicit Camera(void);
@@ -28,24 +25,12 @@ struct Camera {
     void change_fov(float fov);
 
 private:
-    void recompute_modelview(void);
-    void recompute_projection(void);
-
-    glm::vec3 m_camera_position;        // where is the camera located? 
-    glm::vec3 m_camera_view;            // where is it pointing
-    glm::vec3 m_camera_up;              // opposite direction of gravity
-    double yaw, pitch, roll;
-
-    // this values is derived from the above, caching
-    glm::vec3 m_camera_lateral;
-
-    Real m_field_of_view;       // in radians
-    Real m_aspect_ratio;
-
-    glm::mat4x4 m_ret_modelview;
-    glm::mat4x4 m_ret_projection;
-    bool m_modelview_dirty;     // caching the computed matrices
-    bool m_projection_dirty;
+    struct Impl;
+    Impl *m_impl;
+    // TODO(SamNi): I really would much prefer to use unique_ptr
+    // for this, but couldn't get it to work without making the
+    // implementation member static, which we do not want for
+    // the camera class.
 };
 
 #endif  // ~CAMERA_H
