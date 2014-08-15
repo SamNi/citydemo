@@ -11,6 +11,7 @@
 
 struct Camera {
     explicit Camera(void);
+    ~Camera(void);
     void look_at(const glm::vec3& src, const glm::vec3& dest);
     void sanitize(glm::vec3& v);
 
@@ -26,11 +27,7 @@ struct Camera {
 
 private:
     struct Impl;
-    Impl *m_impl;
-    // TODO(SamNi): I really would much prefer to use unique_ptr
-    // for this, but couldn't get it to work without making the
-    // implementation member static, which we do not want for
-    // the camera class.
+    std::unique_ptr<Camera::Impl> m_impl;
 };
 
 #endif  // ~CAMERA_H

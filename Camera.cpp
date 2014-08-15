@@ -16,10 +16,10 @@ struct Camera::Impl {
         pitch(0.0f),
         roll(0.0f)
     { }
-    ~Impl(void) { } // dummy dtor to get unique_ptr to work
     void look_at(const glm::vec3& src, const glm::vec3& dest) {
         m_modelview_dirty = true;
         m_camera_position = src;
+        m_camera_view = dest;
     }
     void sanitize(glm::vec3& v) {
         if (glm::isnan(v.x) || glm::isinf(v.x))
@@ -124,7 +124,8 @@ private:
     bool m_projection_dirty;
 };
 
-Camera::Camera(void) : m_impl(new Impl()) { }
+Camera::Camera(void) : m_impl( std::unique_ptr<Camera::Impl>(new Impl()) ) { }
+Camera::~Camera(void) { m_impl.reset(nullptr); }  // dtor to get std::unique_ptr to work
 void Camera::look_at(const glm::vec3& src, const glm::vec3& dest) { m_impl->look_at(src, dest); }
 void Camera::sanitize(glm::vec3& v) { m_impl->sanitize(v); }
 void Camera::strafe(const glm::vec3& dir) { m_impl->strafe(dir); }
