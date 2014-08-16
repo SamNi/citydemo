@@ -12,9 +12,6 @@
 #include "GLM.h"
 #include "Camera.h"
 
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
-
 std::unique_ptr<Frontend::Impl> Frontend::mImpl = nullptr;
 
 struct Frontend::Impl {
@@ -48,8 +45,8 @@ struct Frontend::Impl {
         Backend::begin_frame();
         Backend::add_tris();
         Backend::end_frame(); // With this call, the backend sets off to do its thing
-        Backend::disable_blending();
-        Backend::disable_depth_testing();
+        //Backend::disable_blending();
+        //Backend::disable_depth_testing();
 
     }
     void shutdown(void) {
