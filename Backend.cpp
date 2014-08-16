@@ -4,13 +4,14 @@
 #include "./GL.h"
 #include "./GLM.h"
 #include "Shader.h"
+#include "Camera.h"
 #include <png.h>            // for writing screenshots
 
 #pragma warning(disable : 4800)
 
-static const int        OFFSCREEN_WIDTH =           1024;
-static const int        OFFSCREEN_HEIGHT =          1024;
-static const bool       PIXELATED =                 false;
+static const int        OFFSCREEN_WIDTH =           16;
+static const int        OFFSCREEN_HEIGHT =          16;
+static const bool       PIXELATED =                 true;
 
 typedef glm::u8vec4 RGBA;
 typedef glm::u16vec2 TexCoord;
@@ -40,21 +41,28 @@ struct Framebuffer {
 
         glBindTexture(GL_TEXTURE_2D, oldTextureID);
         checkGL();
+
     }
     void Bind(void) const {
+
         glBindFramebuffer(GL_FRAMEBUFFER, framebufferID);
         glBindTexture(GL_TEXTURE_2D, oldTextureID);
         glViewport(0, 0, Framebuffer::width, Framebuffer::height);
         checkGL();
     }
     void Blit(int w, int h) const {
+        static const auto identity_matrix = glm::mat4x4(1.0f);
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);       // switch to the visible render buffer
         glDisable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT);
         glBindTexture(GL_TEXTURE_2D, textureID);
         glViewport(0, 0, w, h);
+        Backend::set_modelview(identity_matrix);
+        Backend::set_projection(identity_matrix);
         Backend::draw_fullscreen_quad();
     }
+    Camera          ortho_cam;
     GLuint          framebufferID;
     GLuint          textureID;
     GLint           oldTextureID;
