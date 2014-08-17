@@ -140,12 +140,10 @@ protected:
             glUniformBlockBinding(prog_handle, block_index, 0);
             glBindBufferBase(GL_UNIFORM_BUFFER, block_index, m_ubo_id);
 
-            glm::mat4x4 mvp(1.0f);
-            mvp *= glm::rotate((float)glm::radians(uniform(-60.0f,60.f)), glm::vec3(0.0f, 0.0f, 1.0f));
-            mvp *= glm::ortho(-1.333f, 1.333f, -1.0f, 1.0f);
             for (uint16_t i = 0;i < MAX_NUM_MVP;++i) {
-//                set_modelview(i, glm::mat4x4(1.0f));
-//                set_modelview(i, glm::ortho(-1.33f,1.333f,-1.0f,1.0f));
+                glm::mat4x4 mvp(1.0f);
+                mvp *= glm::rotate((float)glm::radians(uniform(-60.0f,60.f)), glm::vec3(0.0f, 0.0f, 1.0f));
+    //            mvp *= glm::ortho(-1.333f, 1.333f, -1.0f, 1.0f);
                 set_mvp(i, mvp);
             }
 
