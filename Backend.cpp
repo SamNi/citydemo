@@ -19,31 +19,29 @@ typedef uint32_t PackedNormal;
 
 inline void wipe_memory(void *dest, size_t n) { memset(dest, NULL, n); }
 
-// these are all in UpLeft, DownLeft, DownRight, UpRight order
-static const GLfloat points[] = {
-    // ccw order starting from lower left
-    -1.0f, -1.0f, 0.0f,
-    1.0f, -1.0f, 0.0f,
-    1.0f, 1.0f, 0.0f,
-    -1.0f, 1.0f, 0.0f,
+static const glm::vec3 points[] = {
+    glm::vec3(-1.0f, -1.0f, 0.0f),
+    glm::vec3(+1.0f, -1.0f, 0.0f),
+    glm::vec3(+1.0f, +1.0f, 0.0f),
+    glm::vec3(-1.0f, +1.0f, 0.0f),
 };
-static const GLfloat colors[] = {
-    1.0f, 1.0f, 1.0f, 1.0f,
-    1.0f, 1.0f, 1.0f, 1.0f,
-    1.0f, 1.0f, 1.0f, 1.0f,
-    1.0f, 1.0f, 1.0f, 1.0f,
+static const glm::vec4 colors[] = {
+    glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+    glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+    glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+    glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
 };
-static const GLfloat texCoords[] = {
-    0.0f, 0.0f,
-    1.0f, 0.0f,
-    1.0f, 1.0f,
-    0.0f, 1.0f,
+static const glm::vec2 texCoords[] = {
+    glm::vec2(0.0f, 0.0f),
+    glm::vec2(1.0f, 0.0f),
+    glm::vec2(1.0f, 1.0f),
+    glm::vec2(0.0f, 1.0f),
 };
-static const GLfloat normals[] = {
-    -1.0f, +1.0f, -1.0f,
-    -1.0f, -1.0f, -1.0f,
-    +1.0f, -1.0f, -1.0f,
-    +1.0f, +1.0f, -1.0f,
+static const glm::vec3 normals[] = {
+    glm::vec3(-1.0f, +1.0f, -1.0f),
+    glm::vec3(-1.0f, -1.0f, -1.0f),
+    glm::vec3(+1.0f, -1.0f, -1.0f),
+    glm::vec3(+1.0f, +1.0f, -1.0f),
 };
 
 // paper thin wrappers with debug-only sanity checks
@@ -105,6 +103,9 @@ struct QuadVAO {
         m_normal_buffer = nullptr;
     }
 private:
+    // don't instantiate
+    explicit QuadVAO(void) { }
+    ~QuadVAO(void) { }
     static const GLenum TARGET = GL_ARRAY_BUFFER;
     static const GLenum FLAGS = GL_MAP_WRITE_BIT;
     static void _open(void) {
@@ -826,8 +827,6 @@ struct Backend::Impl {
         glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, (void*)(geom_buf.cmd_queues.get_base_offset_in_bytes()), geom_buf.cmd_queues.get_size(), 0);
 
         {
-            QuadVAO q;
-
             disable_depth_testing();
 
             // Draw 2D GUI elements
@@ -839,7 +838,7 @@ struct Backend::Impl {
                 widget_manager.set_root(my_widget);
                 widget_manager.set_focus(my_widget);
             }
-            glBindVertexArray(q.get_vao());
+            glBindVertexArray(QuadVAO::get_vao());
             set_instanced_mode(true);
             widget_manager.draw();
 
