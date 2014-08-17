@@ -46,9 +46,95 @@ static const GLfloat normals[] = {
     +1.0f, +1.0f, -1.0f,
 };
 
-// Singleton. There should only truly be one of these.
+// paper thin wrappers with debug-only sanity checks
+struct OpenGLBufferImmutable {
+    OpenGLBufferImmutable(GLenum target, GLenum flags, uint32_t num_bytes) : m_num_bytes(num_bytes), m_flags(flags), m_target(target) {
+        _open(target, flags, num_bytes, nullptr);
+    }
+    OpenGLBufferImmutable(GLenum target, GLenum flags, uint32_t num_bytes, const void *data) : m_num_bytes(num_bytes), m_flags(flags), m_target(target) {
+        _open(target, flags, num_bytes, data);
+    }
+    ~OpenGLBufferImmutable(void) {
+        glDeleteBuffers(1, &m_buffer_handle);
+        checkGL();
+    }
+    GLuint get_handle(void) const { 
+        return m_buffer_handle; 
+    };
+    void bind(void) const { 
+        glBindBuffer(m_target, m_buffer_handle); 
+        checkGL();
+    }
+private:
+    void _open(GLenum target, GLenum flags, uint32_t num_bytes, const void *data) {
+        glGenBuffers(1, &m_buffer_handle);
+        glBindBuffer(target, m_buffer_handle);
+        glBufferStorage(target, num_bytes, data, flags);
+        checkGL();
+        {
+            auto p = glMapBuffer(target, GL_WRITE_ONLY);
+            checkGL();
+            memcpy(p, data, num_bytes);
+            glUnmapBuffer(target);
+        }
+        glBindBuffer(target, 0);
+        checkGL();
+    }
+    GLenum          m_flags;
+    GLenum          m_target;
+    GLuint          m_buffer_handle;
+    uint32_t        m_num_bytes;
+};
+
+struct OpenGLBufferMutable {
+    OpenGLBufferMutable(GLenum target, GLenum usage_hint) : m_num_bytes(0) {
+        _open(target, usage_hint, 0, nullptr);
+    }
+    OpenGLBufferMutable(GLenum target, GLenum usage_hint, int32_t num_bytes, const void *data) : m_num_bytes(num_bytes) {
+        _open(target, usage_hint, num_bytes, data);
+    }
+private:
+    void _open(GLenum target, GLenum usage_hint, int32_t num_bytes, const void *data) {
+        glGenBuffers(1, &m_buffer_handle);
+        glBindBuffer(target, m_buffer_handle);
+        glBufferData(target, num_bytes, data, usage_hint);
+        glBindBuffer(target, 0);
+    }
+    GLuint          m_buffer_handle;
+    uint32_t        m_num_bytes;
+};
+
 struct QuadVAO {
     explicit QuadVAO(void) {
+        static const GLenum TARGET = GL_ARRAY_BUFFER;
+        static const GLenum FLAGS = GL_MAP_WRITE_BIT;
+
+        if (0 != m_vao_handle)
+            return;
+
+        glGenVertexArrays(1, &m_vao_handle);
+        glBindVertexArray(m_vao_handle);
+
+        m_position_buffer = new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(points), points);
+        m_color_buffer = new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(colors), colors);
+        m_texcoord_buffer = new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(texCoords), texCoords);
+        m_normal_buffer = new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(normals), normals);
+        m_position_buffer->bind();
+        glBindBuffer(TARGET, m_position_buffer->get_handle());
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glBindBuffer(TARGET, m_color_buffer->get_handle());
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+        glBindBuffer(TARGET, m_texcoord_buffer->get_handle());
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        glBindBuffer(TARGET, m_normal_buffer->get_handle());
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
+        glEnableVertexAttribArray(3);
+        checkGL();
+        glBindVertexArray(0);
+#if 0
         if (0 != vao)
             return;
         glGenVertexArrays(1, &vao);
@@ -88,67 +174,38 @@ struct QuadVAO {
         glEnableVertexAttribArray(2);
         glEnableVertexAttribArray(3);
         checkGL();
+#endif
     }
-    static GLuint get_vao(void) { return vao; }
+    ~QuadVAO(void) {
+#if 0
+        delete m_position_buffer;
+        delete m_color_buffer;
+        delete m_texcoord_buffer;
+        delete m_normal_buffer;
+#endif
+    }
+    static GLuint get_vao(void) { return m_vao_handle; }
 private:
-    static GLuint vbo_position, vbo_colors, vbo_texCoords, vbo_normal, vao;
+    static OpenGLBufferImmutable* m_position_buffer;
+    static OpenGLBufferImmutable* m_color_buffer;
+    static OpenGLBufferImmutable* m_texcoord_buffer;
+    static OpenGLBufferImmutable* m_normal_buffer;
+
+    static GLuint m_vao_handle;
 };
+#if 0
 GLuint QuadVAO::vbo_position = 0;
 GLuint QuadVAO::vbo_colors = 0;
 GLuint QuadVAO::vbo_texCoords = 0;
 GLuint QuadVAO::vbo_normal = 0;
 GLuint QuadVAO::vao = 0;
+#endif 
 
-// paper thin wrappers with debug-only sanity checks
-struct OpenGLBufferImmutable {
-    OpenGLBufferImmutable(GLenum target, GLenum flags) : m_num_bytes(0), m_flags(flags), m_target(target) {
-        _open(target, flags, 0, nullptr);
-    }
-    OpenGLBufferImmutable(GLenum target, GLenum flags, uint32_t num_bytes, const void *data) : m_num_bytes(num_bytes), m_flags(flags), m_target(target) {
-        _open(target, flags, num_bytes, data);
-    }
-    ~OpenGLBufferImmutable(void) {
-        glDeleteBuffers(1, &m_buffer_handle);
-        checkGL();
-    }
-    GLuint get_handle(void) const { 
-        return m_buffer_handle; 
-    };
-    void bind(void) const { 
-        glBindBuffer(m_target, m_buffer_handle); 
-        checkGL();
-    }
-private:
-    void _open(GLenum target, GLenum flags, uint32_t num_bytes, const void *data) {
-        glGenBuffers(1, &m_buffer_handle);
-        glBindBuffer(target, m_buffer_handle);
-        glBufferStorage(target, num_bytes, data, flags);
-        glBindBuffer(target, 0);
-        checkGL();
-    }
-    GLenum          m_flags;
-    GLenum          m_target;
-    GLuint          m_buffer_handle;
-    uint32_t        m_num_bytes;
-};
-
-struct OpenGLBufferMutable {
-    OpenGLBufferMutable(GLenum target, GLenum usage_hint) : m_num_bytes(0) {
-        _open(target, usage_hint, 0, nullptr);
-    }
-    OpenGLBufferMutable(GLenum target, GLenum usage_hint, int32_t num_bytes, const void *data) : m_num_bytes(num_bytes) {
-        _open(target, usage_hint, num_bytes, data);
-    }
-private:
-    void _open(GLenum target, GLenum usage_hint, int32_t num_bytes, const void *data) {
-        glGenBuffers(1, &m_buffer_handle);
-        glBindBuffer(target, m_buffer_handle);
-        glBufferData(target, num_bytes, data, usage_hint);
-        glBindBuffer(target, 0);
-    }
-    GLuint          m_buffer_handle;
-    uint32_t        m_num_bytes;
-};
+GLuint QuadVAO::m_vao_handle = 0;
+OpenGLBufferImmutable* QuadVAO::m_position_buffer;
+OpenGLBufferImmutable* QuadVAO::m_color_buffer;
+OpenGLBufferImmutable* QuadVAO::m_texcoord_buffer;
+OpenGLBufferImmutable* QuadVAO::m_normal_buffer;
 
 #include "GUI.h"
 
@@ -160,7 +217,7 @@ struct MyWidget : public Widget {
     }
 
     virtual void draw(void) const {
-        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, 60);
+        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, 25);
     }
 };
 
@@ -262,7 +319,6 @@ struct Framebuffer {
         glViewport(0, 0, w, h);
         Backend::set_modelview(identity_matrix);
         Backend::set_projection(identity_matrix);
-        Backend::draw_fullscreen_quad();
     }
     GLuint          framebufferID;
     GLuint          textureID;
@@ -890,14 +946,6 @@ struct Backend::Impl {
 
     void disable_blending(void) { glDisable(GL_BLEND); }
 
-    void draw_fullscreen_quad(void) {
-        static bool firstTime = true;
-        QuadVAO q;
-        glBindVertexArray(q.get_vao());
-        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-        glBindVertexArray(0);
-    }
-
     void enable_additive_blending(void) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
@@ -981,7 +1029,6 @@ void Backend::begin_frame(void) { mImpl->begin_frame(); }
 void Backend::end_frame(void) { mImpl->end_frame(); }
 void Backend::resize(int w, int h) { mImpl->resize(w, h); }
 void Backend::screenshot(void) { mImpl->screenshot(); }
-void Backend::draw_fullscreen_quad(void) { mImpl->draw_fullscreen_quad(); }
 void Backend::add_tris(void) { mImpl->add_tris(); }
 
 void Backend::set_modelview(const glm::mat4x4& m) { mImpl->set_modelview(m); }
