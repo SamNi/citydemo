@@ -9,8 +9,8 @@
 
 #pragma warning(disable : 4800)
 
-static const int        OFFSCREEN_WIDTH =           256;
-static const int        OFFSCREEN_HEIGHT =          64;
+static const int        OFFSCREEN_WIDTH =           512;
+static const int        OFFSCREEN_HEIGHT =          512;
 static const bool       PIXELATED =                 false;
 
 typedef glm::u8vec4 RGBA;
@@ -109,7 +109,7 @@ struct MyWidget : public Widget {
     }
 
     virtual void draw(void) const {
-        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, 15);
+        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, 65);
     }
 };
 
@@ -142,8 +142,10 @@ protected:
 
             for (uint16_t i = 0;i < MAX_NUM_MVP;++i) {
                 glm::mat4x4 mvp(1.0f);
+                mvp *= glm::translate(glm::vec3(uniform(-1.0f, 1.0f), uniform(-1.0f, 1.0f), 0.0f));
+                mvp *= glm::scale(glm::vec3(0.25f));
                 mvp *= glm::rotate((float)glm::radians(uniform(-60.0f,60.f)), glm::vec3(0.0f, 0.0f, 1.0f));
-    //            mvp *= glm::ortho(-1.333f, 1.333f, -1.0f, 1.0f);
+                mvp *= glm::ortho(-1.77777f, 1.77777f, -1.0f, 1.0f);
                 set_mvp(i, mvp);
             }
 
@@ -596,17 +598,14 @@ struct GeometryBuffer {
         assert(IsOpen());
 
         static uint32_t i;
-        auto vtx = get_vertex_buffer_pointer();
-        auto col = get_color_buffer_ptr();
-        auto tex = get_texture_coordinate_buffer_pointer();
-        auto normals = get_normal_buffer_ptr();
+        auto vertex_attributes = get_vert_attr();
         auto idx = get_index_buffer_ptr();
 
         for (i = 0;i < st.nVertices;++i) {
-            vtx[i] = st.vertices[i];
-            col[i] = (st.colors != nullptr) ? st.colors[i] : RGBA(255,255,255,255);
-            tex[i] = (st.texture_coordinates != nullptr) ? st.texture_coordinates[i] : TexCoord(0, 0);
-            normals[i] = (st.normals != nullptr) ? st.normals[i] : normal_pack(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+            vertex_attributes.vertBuf[i] = st.vertices[i];
+            vertex_attributes.colBuf[i] = (st.colors != nullptr) ? st.colors[i] : RGBA(255,255,255,255);
+            vertex_attributes.texCoordBuf[i] = (st.texture_coordinates != nullptr) ? st.texture_coordinates[i] : TexCoord(0, 0);
+            vertex_attributes.normalBuf[i] = (st.normals != nullptr) ? st.normals[i] : normal_pack(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
         }
 
         for (i = 0;i < st.nIndices;++i)
@@ -631,11 +630,7 @@ struct GeometryBuffer {
 
     GLuint get_vao(void) const { return vao; }
     GLuint get_indirect_buffer_id(void) const { return buf_id[INDIRECT_DRAW_CMD]; };
-
-    glm::vec3 *get_vertex_buffer_pointer(void) const { return m_vertex_attr.vertBuf; }
-    RGBA *get_color_buffer_ptr(void) const { return m_vertex_attr.colBuf; }
-    TexCoord *get_texture_coordinate_buffer_pointer(void) const { return m_vertex_attr.texCoordBuf; }
-    PackedNormal *get_normal_buffer_ptr(void) const { return m_vertex_attr.normalBuf; }
+    const VertexAttributePointers& get_vert_attr(void) const { return m_vertex_attr; }
 
     GLuint *get_index_buffer_ptr(void) const { return idxBuf; }
     DrawElementsIndirectCommand *get_command_buffer_ptr(void) const { return cmdBuf; }
@@ -811,7 +806,7 @@ struct Backend::Impl {
 
             firstTime = false;
         }
-
+        set_instanced_mode(false);
         if (offscreenRender)
             offscreenFB->Blit(current_screen_width, current_screen_height);
         geom_buf.cmd_queues.Swap();
