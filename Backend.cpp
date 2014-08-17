@@ -99,6 +99,57 @@ GLuint QuadVAO::vbo_texCoords = 0;
 GLuint QuadVAO::vbo_normal = 0;
 GLuint QuadVAO::vao = 0;
 
+// paper thin wrappers with debug-only sanity checks
+struct OpenGLBufferImmutable {
+    OpenGLBufferImmutable(GLenum target, GLenum flags) : m_num_bytes(0), m_flags(flags), m_target(target) {
+        _open(target, flags, 0, nullptr);
+    }
+    OpenGLBufferImmutable(GLenum target, GLenum flags, uint32_t num_bytes, const void *data) : m_num_bytes(num_bytes), m_flags(flags), m_target(target) {
+        _open(target, flags, num_bytes, data);
+    }
+    ~OpenGLBufferImmutable(void) {
+        glDeleteBuffers(1, &m_buffer_handle);
+        checkGL();
+    }
+    GLuint get_handle(void) const { 
+        return m_buffer_handle; 
+    };
+    void bind(void) const { 
+        glBindBuffer(m_target, m_buffer_handle); 
+        checkGL();
+    }
+private:
+    void _open(GLenum target, GLenum flags, uint32_t num_bytes, const void *data) {
+        glGenBuffers(1, &m_buffer_handle);
+        glBindBuffer(target, m_buffer_handle);
+        glBufferStorage(target, num_bytes, data, flags);
+        glBindBuffer(target, 0);
+        checkGL();
+    }
+    GLenum          m_flags;
+    GLenum          m_target;
+    GLuint          m_buffer_handle;
+    uint32_t        m_num_bytes;
+};
+
+struct OpenGLBufferMutable {
+    OpenGLBufferMutable(GLenum target, GLenum usage_hint) : m_num_bytes(0) {
+        _open(target, usage_hint, 0, nullptr);
+    }
+    OpenGLBufferMutable(GLenum target, GLenum usage_hint, int32_t num_bytes, const void *data) : m_num_bytes(num_bytes) {
+        _open(target, usage_hint, num_bytes, data);
+    }
+private:
+    void _open(GLenum target, GLenum usage_hint, int32_t num_bytes, const void *data) {
+        glGenBuffers(1, &m_buffer_handle);
+        glBindBuffer(target, m_buffer_handle);
+        glBufferData(target, num_bytes, data, usage_hint);
+        glBindBuffer(target, 0);
+    }
+    GLuint          m_buffer_handle;
+    uint32_t        m_num_bytes;
+};
+
 #include "GUI.h"
 
 using namespace GUI;
@@ -109,7 +160,7 @@ struct MyWidget : public Widget {
     }
 
     virtual void draw(void) const {
-        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, 65);
+        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, 60);
     }
 };
 
@@ -132,7 +183,7 @@ protected:
 
 
             // Assign said UBO to uniform
-            GLint prog_handle, block_size;
+            GLint prog_handle;
             glGetIntegerv(GL_CURRENT_PROGRAM, &prog_handle);
 
             auto block_index = glGetUniformBlockIndex(prog_handle, "per_instance_mvp");
@@ -143,23 +194,15 @@ protected:
             for (uint16_t i = 0;i < MAX_NUM_MVP;++i) {
                 glm::mat4x4 mvp(1.0f);
                 mvp *= glm::translate(glm::vec3(uniform(-1.0f, 1.0f), uniform(-1.0f, 1.0f), 0.0f));
-                mvp *= glm::scale(glm::vec3(0.25f));
-                mvp *= glm::rotate((float)glm::radians(uniform(-60.0f,60.f)), glm::vec3(0.0f, 0.0f, 1.0f));
+                mvp *= glm::scale(glm::vec3(uniform(0.05f, 0.35f)));
+                mvp *= glm::rotate((float)glm::radians(uniform(-180.0f,180.0f)), glm::vec3(0.0f, 0.0f, 1.0f));
                 mvp *= glm::ortho(-1.77777f, 1.77777f, -1.0f, 1.0f);
                 set_mvp(i, mvp);
             }
-
-
             glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
             LOG(LOG_TRACE, "WidgetUBO opened");
             LOG(LOG_TRACE, "Allocated space for %u 4x4 MVPs (%u kB)", MAX_NUM_MVP, BUF_SIZE >> 10);
-
-
-
-
-
-
         }
         ~WidgetUBO(void) { glDeleteBuffers(1, &m_ubo_id); }
         void set_mvp(uint16_t index, const glm::mat4x4& mat) {
