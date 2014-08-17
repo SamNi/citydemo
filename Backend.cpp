@@ -889,48 +889,6 @@ struct Backend::Impl {
     }
 
     void disable_blending(void) { glDisable(GL_BLEND); }
-    void init_cube_vao(void) {
-        static GLuint vbo_position, vbo_colors, vbo_texCoords, vbo_normal, vao;
-        static GLint progHandle, loc, loc2;
-
-        glGenVertexArrays(1, &vao);
-        glBindVertexArray(vao);
-
-        glGenBuffers(1, &vbo_position);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
-        glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), points, GL_STATIC_DRAW);
-        checkGL();
-
-        glGenBuffers(1, &vbo_colors);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
-        glBufferData(GL_ARRAY_BUFFER, 4*4*sizeof(GLfloat), colors, GL_STATIC_DRAW);
-        checkGL();
-
-        glGenBuffers(1, &vbo_texCoords);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
-        glBufferData(GL_ARRAY_BUFFER, 2*4*sizeof(GLfloat), texCoords, GL_STATIC_DRAW);
-        checkGL();
-
-        glGenBuffers(1, &vbo_normal);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
-        glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), normals, GL_STATIC_DRAW);
-        checkGL();
-
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
-        checkGL();
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glEnableVertexAttribArray(2);
-        glEnableVertexAttribArray(3);
-        checkGL();
-    }
 
     void draw_fullscreen_quad(void) {
         static bool firstTime = true;
