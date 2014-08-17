@@ -13,9 +13,12 @@ static const int        OFFSCREEN_WIDTH =           512;
 static const int        OFFSCREEN_HEIGHT =          512;
 static const bool       PIXELATED =                 false;
 
+struct OpenGLBufferImmutable;
+
 typedef glm::u8vec4 RGBA;
 typedef glm::u16vec2 TexCoord;
 typedef uint32_t PackedNormal;
+typedef std::unique_ptr<OpenGLBufferImmutable> ImmutableBufPtr;
 
 inline void wipe_memory(void *dest, size_t n) { memset(dest, NULL, n); }
 
@@ -114,10 +117,10 @@ private:
         glGenVertexArrays(1, &m_vao_handle);
         glBindVertexArray(m_vao_handle);
 
-        m_position_buffer = BufPtr(new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(points), points));
-        m_color_buffer = BufPtr(new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(colors), colors));
-        m_texcoord_buffer = BufPtr(new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(texCoords), texCoords));
-        m_normal_buffer = BufPtr(new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(normals), normals));
+        m_position_buffer = ImmutableBufPtr(new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(points), points));
+        m_color_buffer = ImmutableBufPtr(new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(colors), colors));
+        m_texcoord_buffer = ImmutableBufPtr(new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(texCoords), texCoords));
+        m_normal_buffer = ImmutableBufPtr(new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(normals), normals));
         m_position_buffer->bind();
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
         m_color_buffer->bind();
@@ -134,19 +137,18 @@ private:
         glBindVertexArray(0);
     }
 
-    typedef std::unique_ptr<OpenGLBufferImmutable> BufPtr;
     static GLuint m_vao_handle;
-    static BufPtr m_position_buffer;
-    static BufPtr m_color_buffer;
-    static BufPtr m_texcoord_buffer;
-    static BufPtr m_normal_buffer;
+    static ImmutableBufPtr m_position_buffer;
+    static ImmutableBufPtr m_color_buffer;
+    static ImmutableBufPtr m_texcoord_buffer;
+    static ImmutableBufPtr m_normal_buffer;
 };
 
 GLuint QuadVAO::m_vao_handle = 0;
-QuadVAO::BufPtr QuadVAO::m_position_buffer = nullptr;
-QuadVAO::BufPtr QuadVAO::m_color_buffer = nullptr;
-QuadVAO::BufPtr QuadVAO::m_texcoord_buffer = nullptr;
-QuadVAO::BufPtr QuadVAO::m_normal_buffer = nullptr;
+ImmutableBufPtr QuadVAO::m_position_buffer = nullptr;
+ImmutableBufPtr QuadVAO::m_color_buffer = nullptr;
+ImmutableBufPtr QuadVAO::m_texcoord_buffer = nullptr;
+ImmutableBufPtr QuadVAO::m_normal_buffer = nullptr;
 
 #include "GUI.h"
 
@@ -172,14 +174,8 @@ protected:
         static const uint32_t BUF_SIZE = MAX_NUM_MVP*MVP_SIZE;
 
         explicit WidgetUBO(void) {
-
-            glGenBuffers(1, &m_ubo_id);
-            glBindBuffer(GL_UNIFORM_BUFFER, m_ubo_id);
-            glBufferStorage(GL_UNIFORM_BUFFER, 
-                BUF_SIZE, 
-                nullptr, 
-                GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT);
-
+            m_ubo = ImmutableBufPtr(new OpenGLBufferImmutable(GL_UNIFORM_BUFFER, GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT, BUF_SIZE));
+            m_ubo->bind();
 
             // Assign said UBO to uniform
             GLint prog_handle;
@@ -188,7 +184,7 @@ protected:
             auto block_index = glGetUniformBlockIndex(prog_handle, "per_instance_mvp");
             assert(block_index != GL_INVALID_INDEX);
             glUniformBlockBinding(prog_handle, block_index, 0);
-            glBindBufferBase(GL_UNIFORM_BUFFER, block_index, m_ubo_id);
+            glBindBufferBase(GL_UNIFORM_BUFFER, block_index, m_ubo->get_handle());
 
             for (uint16_t i = 0;i < MAX_NUM_MVP;++i) {
                 glm::mat4x4 mvp(1.0f);
@@ -203,10 +199,9 @@ protected:
             LOG(LOG_TRACE, "WidgetUBO opened");
             LOG(LOG_TRACE, "Allocated space for %u 4x4 MVPs (%u kB)", MAX_NUM_MVP, BUF_SIZE >> 10);
         }
-        ~WidgetUBO(void) { glDeleteBuffers(1, &m_ubo_id); }
         void set_mvp(uint16_t index, const glm::mat4x4& mat) {
             assert(index < MAX_NUM_MVP);
-            glBindBuffer(GL_UNIFORM_BUFFER, m_ubo_id);
+            glBindBuffer(GL_UNIFORM_BUFFER, m_ubo->get_handle());
             auto p = glMapBufferRange(GL_UNIFORM_BUFFER, index*MVP_SIZE, MVP_SIZE, GL_MAP_WRITE_BIT);
             memcpy(p, glm::value_ptr(mat), MVP_SIZE);
             glUnmapBuffer(GL_UNIFORM_BUFFER);
@@ -214,7 +209,7 @@ protected:
         }
 
     protected:
-        GLuint m_ubo_id;
+        ImmutableBufPtr m_ubo;
     };
 
 protected:
@@ -870,14 +865,12 @@ struct Backend::Impl {
         nBytes = current_screen_width*current_screen_height*3*sizeof(uint8_t);
         buf = new uint8_t[nBytes];
 
-        //glReadPixels(0, 0, current_screen_width, current_screen_height, GL_RGBA, GL_UNSIGNED_BYTE, buf);
         glReadPixels(0, 0, current_screen_width, current_screen_height, GL_RGB, GL_UNSIGNED_BYTE, buf);
         imgflip(current_screen_width, current_screen_height, 3, buf);
 
         image.width = current_screen_width;
         image.height = current_screen_height;
         image.version = PNG_IMAGE_VERSION;
-        //image.format = PNG_FORMAT_RGBA;
         image.format = PNG_FORMAT_RGB;
 
         if (!png_image_write_to_file(&image, filename, 0, (void*)buf, 0, nullptr))
