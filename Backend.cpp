@@ -9,15 +9,174 @@
 
 #pragma warning(disable : 4800)
 
-static const int        OFFSCREEN_WIDTH =           16;
-static const int        OFFSCREEN_HEIGHT =          16;
-static const bool       PIXELATED =                 true;
+static const int        OFFSCREEN_WIDTH =           256;
+static const int        OFFSCREEN_HEIGHT =          64;
+static const bool       PIXELATED =                 false;
 
 typedef glm::u8vec4 RGBA;
 typedef glm::u16vec2 TexCoord;
 typedef uint32_t PackedNormal;
 
 inline void wipe_memory(void *dest, size_t n) { memset(dest, NULL, n); }
+
+// these are all in UpLeft, DownLeft, DownRight, UpRight order
+static const GLfloat points[] = {
+    // ccw order starting from lower left
+    -1.0f, -1.0f, 0.0f,
+    1.0f, -1.0f, 0.0f,
+    1.0f, 1.0f, 0.0f,
+    -1.0f, 1.0f, 0.0f,
+};
+static const GLfloat colors[] = {
+    1.0f, 1.0f, 1.0f, 1.0f,
+    1.0f, 1.0f, 1.0f, 1.0f,
+    1.0f, 1.0f, 1.0f, 1.0f,
+    1.0f, 1.0f, 1.0f, 1.0f,
+};
+static const GLfloat texCoords[] = {
+    0.0f, 0.0f,
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    0.0f, 1.0f,
+};
+static const GLfloat normals[] = {
+    -1.0f, +1.0f, -1.0f,
+    -1.0f, -1.0f, -1.0f,
+    +1.0f, -1.0f, -1.0f,
+    +1.0f, +1.0f, -1.0f,
+};
+
+// Singleton. There should only truly be one of these.
+struct QuadVAO {
+    explicit QuadVAO(void) {
+        if (0 != vao)
+            return;
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+
+        glGenBuffers(1, &vbo_position);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
+        glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), points, GL_STATIC_DRAW);
+        checkGL();
+
+        glGenBuffers(1, &vbo_colors);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
+        glBufferData(GL_ARRAY_BUFFER, 4*4*sizeof(GLfloat), colors, GL_STATIC_DRAW);
+        checkGL();
+
+        glGenBuffers(1, &vbo_texCoords);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
+        glBufferData(GL_ARRAY_BUFFER, 2*4*sizeof(GLfloat), texCoords, GL_STATIC_DRAW);
+        checkGL();
+
+        glGenBuffers(1, &vbo_normal);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
+        glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), normals, GL_STATIC_DRAW);
+        checkGL();
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        checkGL();
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
+        glEnableVertexAttribArray(3);
+        checkGL();
+    }
+    static GLuint get_vao(void) { return vao; }
+private:
+    static GLuint vbo_position, vbo_colors, vbo_texCoords, vbo_normal, vao;
+};
+GLuint QuadVAO::vbo_position = 0;
+GLuint QuadVAO::vbo_colors = 0;
+GLuint QuadVAO::vbo_texCoords = 0;
+GLuint QuadVAO::vbo_normal = 0;
+GLuint QuadVAO::vao = 0;
+
+#include "GUI.h"
+
+using namespace GUI;
+
+struct MyWidget : public Widget {
+    explicit MyWidget(void) {
+        // 
+    }
+
+    virtual void draw(void) const {
+        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, 15);
+    }
+};
+
+struct MyWidgetManager : public WidgetManager {
+    explicit MyWidgetManager(void) {
+    }
+protected:
+    struct WidgetUBO {
+        static const uint32_t MAX_NUM_MVP = 1024;
+        static const uint32_t MVP_SIZE = sizeof(glm::mat4x4);
+        static const uint32_t BUF_SIZE = MAX_NUM_MVP*MVP_SIZE;
+        explicit WidgetUBO(void) {
+
+            glGenBuffers(1, &m_ubo_id);
+            glBindBuffer(GL_UNIFORM_BUFFER, m_ubo_id);
+            glBufferStorage(GL_UNIFORM_BUFFER, 
+                BUF_SIZE, 
+                nullptr, 
+                GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT);
+
+
+            // Assign said UBO to uniform
+            GLint prog_handle, block_size;
+            glGetIntegerv(GL_CURRENT_PROGRAM, &prog_handle);
+
+            auto block_index = glGetUniformBlockIndex(prog_handle, "per_instance_mvp");
+            assert(block_index != GL_INVALID_INDEX);
+            glUniformBlockBinding(prog_handle, block_index, 0);
+            glBindBufferBase(GL_UNIFORM_BUFFER, block_index, m_ubo_id);
+
+            glm::mat4x4 mvp(1.0f);
+            mvp *= glm::rotate((float)glm::radians(uniform(-60.0f,60.f)), glm::vec3(0.0f, 0.0f, 1.0f));
+            mvp *= glm::ortho(-1.333f, 1.333f, -1.0f, 1.0f);
+            for (uint16_t i = 0;i < MAX_NUM_MVP;++i) {
+//                set_modelview(i, glm::mat4x4(1.0f));
+//                set_modelview(i, glm::ortho(-1.33f,1.333f,-1.0f,1.0f));
+                set_mvp(i, mvp);
+            }
+
+
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+            LOG(LOG_TRACE, "WidgetUBO opened");
+            LOG(LOG_TRACE, "Allocated space for %u 4x4 MVPs (%u kB)", MAX_NUM_MVP, BUF_SIZE >> 10);
+
+
+
+
+
+
+        }
+        ~WidgetUBO(void) { glDeleteBuffers(1, &m_ubo_id); }
+        void set_mvp(uint16_t index, const glm::mat4x4& mat) {
+            assert(index < MAX_NUM_MVP);
+            glBindBuffer(GL_UNIFORM_BUFFER, m_ubo_id);
+            auto p = glMapBufferRange(GL_UNIFORM_BUFFER, index*MVP_SIZE, MVP_SIZE, GL_MAP_WRITE_BIT);
+            memcpy(p, glm::value_ptr(mat), MVP_SIZE);
+            glUnmapBuffer(GL_UNIFORM_BUFFER);
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        }
+    protected:
+        GLuint m_ubo_id;
+    };
+protected:
+    WidgetUBO m_widget_ubo;
+};
+
 
 struct Framebuffer {
     explicit Framebuffer(uint16_t w, uint16_t h) : width(w), height(h) {
@@ -62,7 +221,6 @@ struct Framebuffer {
         Backend::set_projection(identity_matrix);
         Backend::draw_fullscreen_quad();
     }
-    Camera          ortho_cam;
     GLuint          framebufferID;
     GLuint          textureID;
     GLint           oldTextureID;
@@ -580,8 +738,6 @@ struct Backend::Impl {
         clear_performance_counters();
         query_hardware_specs();
 
-        // Allocate world geometry buffers
-
         return true;
     }
     void shutdown(void) {
@@ -633,8 +789,31 @@ struct Backend::Impl {
     void end_frame(void) {
         mImpl->geom_buf.add_draw_command(loc, st.nIndices);
         geom_buf.close_command_queue();
+        set_instanced_mode(false);
         glBindVertexArray(geom_buf.get_vao());
         glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, (void*)(geom_buf.cmd_queues.get_base_offset_in_bytes()), geom_buf.cmd_queues.get_size(), 0);
+
+        {
+            QuadVAO q;
+
+            disable_depth_testing();
+
+            // Draw 2D GUI elements
+            static WidgetPtr my_widget(new MyWidget());
+            static MyWidgetManager widget_manager;
+            static bool firstTime = true;
+
+            if (firstTime) {
+                widget_manager.set_root(my_widget);
+                widget_manager.set_focus(my_widget);
+            }
+            glBindVertexArray(q.get_vao());
+            set_instanced_mode(true);
+            widget_manager.draw();
+
+            firstTime = false;
+        }
+
         if (offscreenRender)
             offscreenFB->Blit(current_screen_width, current_screen_height);
         geom_buf.cmd_queues.Swap();
@@ -674,76 +853,53 @@ struct Backend::Impl {
     }
 
     void disable_blending(void) { glDisable(GL_BLEND); }
-    void draw_fullscreen_quad(void) {
-        static bool firstTime = true;
-        // these are all in UpLeft, DownLeft, DownRight, UpRight order
-        static const GLfloat points[] = {
-            // ccw order starting from lower left
-            -1.0f, -1.0f, 0.0f,
-            1.0f, -1.0f, 0.0f,
-            1.0f, 1.0f, 0.0f,
-            -1.0f, 1.0f, 0.0f,
-        };
-        static const GLfloat colors[] = {
-            1.0f, 1.0f, 1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f, 1.0f,
-        };
-        static const GLfloat texCoords[] = {
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
-        };
-        static const GLfloat normals[] = {
-            -1.0f, +1.0f, -1.0f,
-            -1.0f, -1.0f, -1.0f,
-            +1.0f, -1.0f, -1.0f,
-            +1.0f, +1.0f, -1.0f,
-        };
+    void init_cube_vao(void) {
         static GLuint vbo_position, vbo_colors, vbo_texCoords, vbo_normal, vao;
         static GLint progHandle, loc, loc2;
-        if (firstTime) {
-            glGenVertexArrays(1, &vao);
-            glBindVertexArray(vao);
 
-            glGenBuffers(1, &vbo_position);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
-            glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), points, GL_STATIC_DRAW);
-            checkGL();
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
 
-            glGenBuffers(1, &vbo_colors);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
-            glBufferData(GL_ARRAY_BUFFER, 4*4*sizeof(GLfloat), colors, GL_STATIC_DRAW);
-            checkGL();
+        glGenBuffers(1, &vbo_position);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
+        glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), points, GL_STATIC_DRAW);
+        checkGL();
 
-            glGenBuffers(1, &vbo_texCoords);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
-            glBufferData(GL_ARRAY_BUFFER, 2*4*sizeof(GLfloat), texCoords, GL_STATIC_DRAW);
-            checkGL();
+        glGenBuffers(1, &vbo_colors);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
+        glBufferData(GL_ARRAY_BUFFER, 4*4*sizeof(GLfloat), colors, GL_STATIC_DRAW);
+        checkGL();
 
-            glGenBuffers(1, &vbo_normal);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
-            glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), normals, GL_STATIC_DRAW);
-            checkGL();
+        glGenBuffers(1, &vbo_texCoords);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
+        glBufferData(GL_ARRAY_BUFFER, 2*4*sizeof(GLfloat), texCoords, GL_STATIC_DRAW);
+        checkGL();
 
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
-            glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
-            glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
-            checkGL();
-            glEnableVertexAttribArray(0);
-            glEnableVertexAttribArray(1);
-            glEnableVertexAttribArray(2);
-            glEnableVertexAttribArray(3);
-            checkGL();
-       } else
-            glBindVertexArray(vao);
+        glGenBuffers(1, &vbo_normal);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
+        glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), normals, GL_STATIC_DRAW);
+        checkGL();
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
+        checkGL();
+        glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
+        glEnableVertexAttribArray(2);
+        glEnableVertexAttribArray(3);
+        checkGL();
+    }
+
+    void draw_fullscreen_quad(void) {
+        static bool firstTime = true;
+        QuadVAO q;
+        glBindVertexArray(q.get_vao());
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
         glBindVertexArray(0);
     }
@@ -769,6 +925,13 @@ struct Backend::Impl {
         GLint program_handle;
         glGetIntegerv(GL_CURRENT_PROGRAM, &program_handle);
         glUniformMatrix4fv(glGetUniformLocation(program_handle, "projection"), 1, GL_FALSE, glm::value_ptr(m));
+    }
+    void set_instanced_mode(bool b) {
+        GLint program_handle;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &program_handle);
+        auto loc = glGetUniformLocation(program_handle, "gui_quad_instanced");
+
+        glUniform1ui(loc, b);
     }
 
     int current_screen_width;
