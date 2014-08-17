@@ -134,55 +134,8 @@ struct QuadVAO {
         glEnableVertexAttribArray(3);
         checkGL();
         glBindVertexArray(0);
-#if 0
-        if (0 != vao)
-            return;
-        glGenVertexArrays(1, &vao);
-        glBindVertexArray(vao);
-
-        glGenBuffers(1, &vbo_position);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
-        glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), points, GL_STATIC_DRAW);
-        checkGL();
-
-        glGenBuffers(1, &vbo_colors);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
-        glBufferData(GL_ARRAY_BUFFER, 4*4*sizeof(GLfloat), colors, GL_STATIC_DRAW);
-        checkGL();
-
-        glGenBuffers(1, &vbo_texCoords);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
-        glBufferData(GL_ARRAY_BUFFER, 2*4*sizeof(GLfloat), texCoords, GL_STATIC_DRAW);
-        checkGL();
-
-        glGenBuffers(1, &vbo_normal);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
-        glBufferData(GL_ARRAY_BUFFER, 3*4*sizeof(GLfloat), normals, GL_STATIC_DRAW);
-        checkGL();
-
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_position);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_texCoords);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_normal);
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
-        checkGL();
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-        glEnableVertexAttribArray(2);
-        glEnableVertexAttribArray(3);
-        checkGL();
-#endif
     }
     ~QuadVAO(void) {
-#if 0
-        delete m_position_buffer;
-        delete m_color_buffer;
-        delete m_texcoord_buffer;
-        delete m_normal_buffer;
-#endif
     }
     static GLuint get_vao(void) { return m_vao_handle; }
 private:
@@ -193,13 +146,6 @@ private:
 
     static GLuint m_vao_handle;
 };
-#if 0
-GLuint QuadVAO::vbo_position = 0;
-GLuint QuadVAO::vbo_colors = 0;
-GLuint QuadVAO::vbo_texCoords = 0;
-GLuint QuadVAO::vbo_normal = 0;
-GLuint QuadVAO::vao = 0;
-#endif 
 
 GLuint QuadVAO::m_vao_handle = 0;
 OpenGLBufferImmutable* QuadVAO::m_position_buffer;
