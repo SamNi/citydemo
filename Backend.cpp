@@ -19,31 +19,6 @@ typedef uint32_t PackedNormal;
 
 inline void wipe_memory(void *dest, size_t n) { memset(dest, NULL, n); }
 
-static const glm::vec3 points[] = {
-    glm::vec3(-1.0f, -1.0f, 0.0f),
-    glm::vec3(+1.0f, -1.0f, 0.0f),
-    glm::vec3(+1.0f, +1.0f, 0.0f),
-    glm::vec3(-1.0f, +1.0f, 0.0f),
-};
-static const glm::vec4 colors[] = {
-    glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-    glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-    glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-    glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-};
-static const glm::vec2 texCoords[] = {
-    glm::vec2(0.0f, 0.0f),
-    glm::vec2(1.0f, 0.0f),
-    glm::vec2(1.0f, 1.0f),
-    glm::vec2(0.0f, 1.0f),
-};
-static const glm::vec3 normals[] = {
-    glm::vec3(-1.0f, +1.0f, -1.0f),
-    glm::vec3(-1.0f, -1.0f, -1.0f),
-    glm::vec3(+1.0f, -1.0f, -1.0f),
-    glm::vec3(+1.0f, +1.0f, -1.0f),
-};
-
 // paper thin wrappers with debug-only sanity checks
 struct OpenGLBufferImmutable {
     OpenGLBufferImmutable(GLenum target, GLenum flags, uint32_t num_bytes) : m_num_bytes(num_bytes), m_flags(flags), m_target(target) {
@@ -69,12 +44,14 @@ private:
         glBindBuffer(target, m_buffer_handle);
         glBufferStorage(target, num_bytes, data, flags);
         checkGL();
-        {
+        if (nullptr != data) {
             auto p = glMapBuffer(target, GL_WRITE_ONLY);
+            assert(nullptr != p);
             checkGL();
             memcpy(p, data, num_bytes);
             glUnmapBuffer(target);
-        }
+        } else 
+            glClearBufferData(target, GL_R8, GL_RED, GL_UNSIGNED_BYTE, nullptr);
         glBindBuffer(target, 0);
         checkGL();
     }
@@ -91,40 +68,62 @@ struct QuadVAO {
             _open();
         return m_vao_handle;
     }
-    static GLuint reset(void) {
-        delete m_position_buffer;
-        delete m_color_buffer;
-        delete m_texcoord_buffer;
-        delete m_normal_buffer;
+    static void reset(void) {
+        m_position_buffer.reset(nullptr);
+        m_color_buffer.reset(nullptr);
+        m_texcoord_buffer.reset(nullptr);
+        m_normal_buffer.reset(nullptr);
         m_vao_handle = 0;
-        m_position_buffer = nullptr;
-        m_color_buffer = nullptr;
-        m_texcoord_buffer = nullptr;
-        m_normal_buffer = nullptr;
     }
 private:
-    // don't instantiate
+    // please don't instantiate me
     explicit QuadVAO(void) { }
     ~QuadVAO(void) { }
     static const GLenum TARGET = GL_ARRAY_BUFFER;
     static const GLenum FLAGS = GL_MAP_WRITE_BIT;
     static void _open(void) {
+        static const glm::vec3 points[] = {
+            glm::vec3(-1.0f, -1.0f, 0.0f),
+            glm::vec3(+1.0f, -1.0f, 0.0f),
+            glm::vec3(+1.0f, +1.0f, 0.0f),
+            glm::vec3(-1.0f, +1.0f, 0.0f),
+        };
+        static const RGBA colors[] = {
+            RGBA(255, 255, 255, 255),
+            RGBA(255, 255, 255, 255),
+            RGBA(255, 255, 255, 255),
+            RGBA(255, 255, 255, 255),
+        };
+        static const TexCoord texCoords[] = {
+            TexCoord(0, 0),
+            TexCoord(65535, 0),
+            TexCoord(65535, 65535),
+            TexCoord(0, 65535),
+        };
+
+        static const glm::vec3 normals[] = {
+            glm::vec3(-1.0f, +1.0f, -1.0f),
+            glm::vec3(-1.0f, -1.0f, -1.0f),
+            glm::vec3(+1.0f, -1.0f, -1.0f),
+            glm::vec3(+1.0f, +1.0f, -1.0f),
+        };
+
         if (0 != m_vao_handle)
             return;
 
         glGenVertexArrays(1, &m_vao_handle);
         glBindVertexArray(m_vao_handle);
 
-        m_position_buffer = new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(points), points);
-        m_color_buffer = new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(colors), colors);
-        m_texcoord_buffer = new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(texCoords), texCoords);
-        m_normal_buffer = new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(normals), normals);
+        m_position_buffer = BufPtr(new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(points), points));
+        m_color_buffer = BufPtr(new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(colors), colors));
+        m_texcoord_buffer = BufPtr(new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(texCoords), texCoords));
+        m_normal_buffer = BufPtr(new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(normals), normals));
         m_position_buffer->bind();
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
         m_color_buffer->bind();
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+        glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, 0);
         m_texcoord_buffer->bind();
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        glVertexAttribPointer(2, 2, GL_UNSIGNED_SHORT, GL_TRUE, 0, 0);
         m_normal_buffer->bind();
         glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(0);
@@ -135,18 +134,19 @@ private:
         glBindVertexArray(0);
     }
 
+    typedef std::unique_ptr<OpenGLBufferImmutable> BufPtr;
     static GLuint m_vao_handle;
-    static OpenGLBufferImmutable* m_position_buffer;
-    static OpenGLBufferImmutable* m_color_buffer;
-    static OpenGLBufferImmutable* m_texcoord_buffer;
-    static OpenGLBufferImmutable* m_normal_buffer;
+    static BufPtr m_position_buffer;
+    static BufPtr m_color_buffer;
+    static BufPtr m_texcoord_buffer;
+    static BufPtr m_normal_buffer;
 };
 
 GLuint QuadVAO::m_vao_handle = 0;
-OpenGLBufferImmutable* QuadVAO::m_position_buffer = nullptr;
-OpenGLBufferImmutable* QuadVAO::m_color_buffer = nullptr;
-OpenGLBufferImmutable* QuadVAO::m_texcoord_buffer = nullptr;
-OpenGLBufferImmutable* QuadVAO::m_normal_buffer = nullptr;
+QuadVAO::BufPtr QuadVAO::m_position_buffer = nullptr;
+QuadVAO::BufPtr QuadVAO::m_color_buffer = nullptr;
+QuadVAO::BufPtr QuadVAO::m_texcoord_buffer = nullptr;
+QuadVAO::BufPtr QuadVAO::m_normal_buffer = nullptr;
 
 #include "GUI.h"
 
@@ -158,7 +158,7 @@ struct MyWidget : public Widget {
     }
 
     virtual void draw(void) const {
-        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, 25);
+        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, 60);
     }
 };
 
@@ -170,6 +170,7 @@ protected:
         static const uint32_t MAX_NUM_MVP = 1024;
         static const uint32_t MVP_SIZE = sizeof(glm::mat4x4);
         static const uint32_t BUF_SIZE = MAX_NUM_MVP*MVP_SIZE;
+
         explicit WidgetUBO(void) {
 
             glGenBuffers(1, &m_ubo_id);
@@ -211,9 +212,11 @@ protected:
             glUnmapBuffer(GL_UNIFORM_BUFFER);
             glBindBuffer(GL_UNIFORM_BUFFER, 0);
         }
+
     protected:
         GLuint m_ubo_id;
     };
+
 protected:
     WidgetUBO m_widget_ubo;
 };
@@ -253,7 +256,8 @@ struct Framebuffer {
     void Blit(int w, int h) const {
         static const auto identity_matrix = glm::mat4x4(1.0f);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);       // switch to the visible render buffer
+        // switch to the visible render buffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glDisable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT);
         glBindTexture(GL_TEXTURE_2D, textureID);
@@ -774,7 +778,7 @@ struct Backend::Impl {
         return true;
     }
     void shutdown(void) {
-        // glDelete* calls should go here
+        QuadVAO::reset();
     }
 
     void begin_frame(void) {
@@ -825,7 +829,6 @@ struct Backend::Impl {
         set_instanced_mode(false);
         glBindVertexArray(geom_buf.get_vao());
         glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, (void*)(geom_buf.cmd_queues.get_base_offset_in_bytes()), geom_buf.cmd_queues.get_size(), 0);
-
         {
             disable_depth_testing();
 
