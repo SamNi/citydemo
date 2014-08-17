@@ -86,29 +86,28 @@ private:
     uint32_t        m_num_bytes;
 };
 
-struct OpenGLBufferMutable {
-    OpenGLBufferMutable(GLenum target, GLenum usage_hint) : m_num_bytes(0) {
-        _open(target, usage_hint, 0, nullptr);
+struct QuadVAO {
+    static GLuint get_vao(void) { 
+        // lazy initialization
+        if (0 == m_vao_handle)
+            _open();
+        return m_vao_handle;
     }
-    OpenGLBufferMutable(GLenum target, GLenum usage_hint, int32_t num_bytes, const void *data) : m_num_bytes(num_bytes) {
-        _open(target, usage_hint, num_bytes, data);
+    static GLuint reset(void) {
+        delete m_position_buffer;
+        delete m_color_buffer;
+        delete m_texcoord_buffer;
+        delete m_normal_buffer;
+        m_vao_handle = 0;
+        m_position_buffer = nullptr;
+        m_color_buffer = nullptr;
+        m_texcoord_buffer = nullptr;
+        m_normal_buffer = nullptr;
     }
 private:
-    void _open(GLenum target, GLenum usage_hint, int32_t num_bytes, const void *data) {
-        glGenBuffers(1, &m_buffer_handle);
-        glBindBuffer(target, m_buffer_handle);
-        glBufferData(target, num_bytes, data, usage_hint);
-        glBindBuffer(target, 0);
-    }
-    GLuint          m_buffer_handle;
-    uint32_t        m_num_bytes;
-};
-
-struct QuadVAO {
-    explicit QuadVAO(void) {
-        static const GLenum TARGET = GL_ARRAY_BUFFER;
-        static const GLenum FLAGS = GL_MAP_WRITE_BIT;
-
+    static const GLenum TARGET = GL_ARRAY_BUFFER;
+    static const GLenum FLAGS = GL_MAP_WRITE_BIT;
+    static void _open(void) {
         if (0 != m_vao_handle)
             return;
 
@@ -120,13 +119,12 @@ struct QuadVAO {
         m_texcoord_buffer = new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(texCoords), texCoords);
         m_normal_buffer = new OpenGLBufferImmutable(TARGET, FLAGS, sizeof(normals), normals);
         m_position_buffer->bind();
-        glBindBuffer(TARGET, m_position_buffer->get_handle());
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(TARGET, m_color_buffer->get_handle());
+        m_color_buffer->bind();
         glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(TARGET, m_texcoord_buffer->get_handle());
+        m_texcoord_buffer->bind();
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
-        glBindBuffer(TARGET, m_normal_buffer->get_handle());
+        m_normal_buffer->bind();
         glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(0);
         glEnableVertexAttribArray(1);
@@ -135,23 +133,19 @@ struct QuadVAO {
         checkGL();
         glBindVertexArray(0);
     }
-    ~QuadVAO(void) {
-    }
-    static GLuint get_vao(void) { return m_vao_handle; }
-private:
+
+    static GLuint m_vao_handle;
     static OpenGLBufferImmutable* m_position_buffer;
     static OpenGLBufferImmutable* m_color_buffer;
     static OpenGLBufferImmutable* m_texcoord_buffer;
     static OpenGLBufferImmutable* m_normal_buffer;
-
-    static GLuint m_vao_handle;
 };
 
 GLuint QuadVAO::m_vao_handle = 0;
-OpenGLBufferImmutable* QuadVAO::m_position_buffer;
-OpenGLBufferImmutable* QuadVAO::m_color_buffer;
-OpenGLBufferImmutable* QuadVAO::m_texcoord_buffer;
-OpenGLBufferImmutable* QuadVAO::m_normal_buffer;
+OpenGLBufferImmutable* QuadVAO::m_position_buffer = nullptr;
+OpenGLBufferImmutable* QuadVAO::m_color_buffer = nullptr;
+OpenGLBufferImmutable* QuadVAO::m_texcoord_buffer = nullptr;
+OpenGLBufferImmutable* QuadVAO::m_normal_buffer = nullptr;
 
 #include "GUI.h"
 
