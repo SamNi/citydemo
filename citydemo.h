@@ -9,3 +9,7 @@
 #include "Frontend.h"
 #include "ResourceManager.h"
 #include "Application.h" 
+#include "Camera.h"
+#include "Input.h"
+#include "GUI.h"
+#include "LuaBindings.h"

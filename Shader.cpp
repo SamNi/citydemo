@@ -121,7 +121,7 @@ uint32_t ShaderManager::GetProgID(std::string name) {
     return it->second->programID;
 }
 
-void ShaderManager::Shutdown(void) {
+void ShaderManager::shutdown(void) {
     ShaderManager::Impl::progs.clear();
 }
 

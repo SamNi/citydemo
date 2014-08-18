@@ -13,18 +13,6 @@
 // Image : API-independent
 // Texture : Everything needed to function with OpenGL + the associated image
 
-enum ImageFormat {
-    RGB,
-    RGBA,
-    GRAYSCALE
-};
-
-struct Image {
-    int w, h;
-    uint8_t *pixels;
-    ImageFormat fmt;
-};
-
 struct Texture {
     Texture(void);
     Texture(int w, int h);
@@ -114,11 +102,11 @@ Texture::Texture(const char *fname, bool filtered, bool mipmapped) : texID(0), b
     // deprecation of GL_LUMINANCE in OpenGL v4.x
     switch (img.format) {
     case PNG_FORMAT_RGB:
-        Texture::img.fmt = ImageFormat::RGB;
+        Texture::img.fmt = ImageFormat::RGB_;
         nComponents = 3;
         break;
     case PNG_FORMAT_RGBA:
-        Texture::img.fmt = ImageFormat::RGBA;
+        Texture::img.fmt = ImageFormat::RGBALPHA;
         nComponents = 4;
         break;
     default:
@@ -192,11 +180,11 @@ void Texture::UpGL() {
 
     // Note the distinction between our app's enum and the GL constants
     switch (img.fmt) {
-    case ImageFormat::RGB:
+    case ImageFormat::RGB_:
         baseFormat = GL_RGB;
         sizedFormat = GL_RGBA8;
         break;
-    case ImageFormat::RGBA:
+    case ImageFormat::RGBALPHA:
         baseFormat = GL_RGBA;
         sizedFormat = GL_RGBA8;
         break;
@@ -225,6 +213,7 @@ void Texture::UpGL() {
     //checkGL();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
     if (bUseMipmaps) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, bFilter ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST);
         glGenerateMipmap(GL_TEXTURE_2D);
@@ -270,7 +259,7 @@ void Texture::MakeCheckerboard(void) {
     if (!img.pixels)
         return;
 
-    this->img.fmt = ImageFormat::RGBA;
+    this->img.fmt = ImageFormat::RGBALPHA;
     bFilter = false;
     bUseMipmaps = false;
     hot = false;

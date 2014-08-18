@@ -9,7 +9,7 @@ public:
     static uint32_t     Load(std::string name, std::string frag, std::string vertex);
     static void         Bind(std::string name);
     static uint32_t     GetProgID(std::string name);
-    static void         Shutdown(void);
+    static void         shutdown(void);
 private:
     class Impl;
     std::unique_ptr<Impl> mImpl;

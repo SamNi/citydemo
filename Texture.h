@@ -4,6 +4,19 @@
 #include "essentials.h"
 #include "GL.H"
 
+enum ImageFormat {
+    RGB_,
+    RGBALPHA,
+    GRAYSCALE
+};
+
+struct Image {
+    int w, h;
+    uint8_t *pixels;
+    ImageFormat fmt;
+};
+
+
 class TextureManager { 
 public:
     static uint32_t                 Load(const char *path);
