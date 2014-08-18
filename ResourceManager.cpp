@@ -15,7 +15,7 @@ static const char *defaultSearchPaths[] = {
 };
 
 
-bool Startup() {
+bool startup() {
     int i;
     if (!PHYSFS_init("default")) {
         LOG(LOG_CRITICAL, "PHYSFS_init failed");
@@ -49,7 +49,7 @@ bool Startup() {
     return true;
 }
 
-void Shutdown(void) {
+void shutdown(void) {
     PHYSFS_deinit();
 }
 

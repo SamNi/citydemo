@@ -11,8 +11,8 @@ private:
     uint64_t unique_id;
 };
 
-bool Startup();
-void Shutdown(void);
+bool startup();
+void shutdown(void);
 
 }; // ~namespace
 
