@@ -54,7 +54,7 @@ static void cb_key(GLFWwindow *window, int key, int scancode,
 
     switch (key) {
     case GLFW_KEY_F12:
-        Backend::screenshot();
+        Backend::write_screenshot();
         break;
     case GLFW_KEY_W:
         Frontend::strafe(-movement_speed*glm::vec3(0.0f, 0.0f,-1.0f));

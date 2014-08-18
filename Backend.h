@@ -2,8 +2,6 @@
 #ifndef _BACKEND_H_
 #define _BACKEND_H_
 #include "essentials.h"
-#include "GLM.h"
-
 // Think about:
 // what kind of low level commands might my backend render queue provide?
 // you might not need much! consider putting the smarts in the front end
@@ -19,26 +17,32 @@
 // do I really want to double buf anything?
 //      and if so, what?
 
+typedef glm::u8vec3 RGB;
+typedef glm::u8vec4 RGBA;
+typedef glm::u16vec2 TexCoord;
+typedef uint32_t PackedNormal;
+
 class Backend {
 public:
-    static bool startup(int w, int h);
-    static void begin_frame(void);
-    static void end_frame(void);
-    static void shutdown(void);
+    static bool     startup(int w, int h);
+    static void     begin_frame(void);
+    static void     end_frame(void);
+    static void     shutdown(void);
 
-    static void resize(int w, int h);
-    static void screenshot(void);
-    static void draw_fullscreen_quad(void);
-    static void add_tris(void);
+    static void     resize(int w, int h);
+    static void     write_screenshot(void);
+    static RGB*     get_screenshot(void);
+    static void     add_tris(void);
 
-    static void set_modelview(const glm::mat4x4& m);
-    static void set_projection(const glm::mat4x4& m);
+    static void     set_modelview(const glm::mat4x4& m);
+    static void     set_projection(const glm::mat4x4& m);
 
-    static void enable_depth_testing(void);
-    static void disable_depth_testing(void);
-    static void enable_blending(void);
-    static void enable_additive_blending(void);
-    static void disable_blending(void);
+    static void     enable_depth_testing(void);
+    static void     disable_depth_testing(void);
+    static void     enable_blending(void);
+    static void     enable_additive_blending(void);
+    static void     disable_blending(void);
+
 private:
     struct Impl;
     static std::unique_ptr<Impl> mImpl;

@@ -22,7 +22,11 @@ char *readFile(const char *fname) {
 }
 
 void _log(LogLevel l, const char *srcFilePath, int lineNo, const char *funcName, const char *msg, ... ) {
+#ifdef _TEST_BUILD
+    static LogLevel log_threshold = LOG_VERBOSE;
+#else
     static LogLevel log_threshold = LOG_TRACE;
+#endif
     static const char *levelMnemonic[] = { "!", "W", "I", "V", "T" };
     static char dateBuf[60];
     static char filenameBuf[256];
@@ -64,7 +68,9 @@ void checkGL(void) {
     GLuint err = glGetError();
     if (GL_NO_ERROR!=err) {
         LOG(LOG_CRITICAL, "%s\n", gluErrorString(err));
+#ifndef _TEST_BUILD
         exit(EXIT_FAILURE);
+#endif
     }
 #endif
 }

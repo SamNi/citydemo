@@ -15,9 +15,6 @@ static const bool       PIXELATED =                 false;
 
 struct OpenGLBufferImmutable;
 
-typedef glm::u8vec4 RGBA;
-typedef glm::u16vec2 TexCoord;
-typedef uint32_t PackedNormal;
 typedef std::unique_ptr<OpenGLBufferImmutable> ImmutableBufPtr;
 
 inline void wipe_memory(void *dest, size_t n) { memset(dest, NULL, n); }
@@ -143,7 +140,6 @@ private:
     static ImmutableBufPtr m_texcoord_buffer;
     static ImmutableBufPtr m_normal_buffer;
 };
-
 GLuint QuadVAO::m_vao_handle = 0;
 ImmutableBufPtr QuadVAO::m_position_buffer = nullptr;
 ImmutableBufPtr QuadVAO::m_color_buffer = nullptr;
@@ -160,7 +156,7 @@ struct MyWidget : public Widget {
     }
 
     virtual void draw(void) const {
-        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, 60);
+        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, 5);
     }
 };
 
@@ -182,7 +178,10 @@ protected:
             glGetIntegerv(GL_CURRENT_PROGRAM, &prog_handle);
 
             auto block_index = glGetUniformBlockIndex(prog_handle, "per_instance_mvp");
-            assert(block_index != GL_INVALID_INDEX);
+            if (block_index == GL_INVALID_INDEX) {
+                LOG(LOG_CRITICAL, "block_index == GL_INVALID_INDEX");
+                return;
+            }
             glUniformBlockBinding(prog_handle, block_index, 0);
             glBindBufferBase(GL_UNIFORM_BUFFER, block_index, m_ubo->get_handle());
 
@@ -784,8 +783,10 @@ struct Backend::Impl {
             offscreenFB->Bind();    
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#if 0
         geom_buf.cmd_queues.Clear();
         geom_buf.open_command_queue();
+#endif
     }
 
     uint32_t loc;
@@ -819,6 +820,7 @@ struct Backend::Impl {
 
     }
     void end_frame(void) {
+#if 0
         mImpl->geom_buf.add_draw_command(loc, st.nIndices);
         geom_buf.close_command_queue();
         set_instanced_mode(false);
@@ -846,14 +848,22 @@ struct Backend::Impl {
         if (offscreenRender)
             offscreenFB->Blit(current_screen_width, current_screen_height);
         geom_buf.cmd_queues.Swap();
+#endif
     }
     void resize(int w, int h) {
         glViewport(0, 0, w, h);
         current_screen_width = w;
         current_screen_height = h;
     }
-    void screenshot(void) {
-        uint8_t *buf = nullptr;
+    RGB* get_screenshot(void) const {
+        uint32_t buf_size = current_screen_width*current_screen_height*sizeof(RGB);
+        RGB *ret = new RGB[buf_size];
+        glReadPixels(0, 0, current_screen_width, current_screen_height, GL_RGB, GL_UNSIGNED_BYTE, ret);
+        imgflip(current_screen_width, current_screen_height, 3, (uint8_t*)ret);
+        return ret;
+    }
+
+    void write_screenshot(void) {
         int nBytes = 0;
         png_image image = { NULL };
         static char filename[512] = { '\0' };
@@ -863,10 +873,7 @@ struct Backend::Impl {
         LOG(LOG_INFORMATION, "Screenshot %dx%d to %s", current_screen_width, current_screen_height, filename);
 
         nBytes = current_screen_width*current_screen_height*3*sizeof(uint8_t);
-        buf = new uint8_t[nBytes];
-
-        glReadPixels(0, 0, current_screen_width, current_screen_height, GL_RGB, GL_UNSIGNED_BYTE, buf);
-        imgflip(current_screen_width, current_screen_height, 3, buf);
+        auto buf = get_screenshot();
 
         image.width = current_screen_width;
         image.height = current_screen_height;
@@ -910,7 +917,6 @@ struct Backend::Impl {
 
         glUniform1ui(loc, b);
     }
-
     int current_screen_width;
     int current_screen_height;
 
@@ -963,7 +969,8 @@ void Backend::shutdown(void) {
 void Backend::begin_frame(void) { mImpl->begin_frame(); }
 void Backend::end_frame(void) { mImpl->end_frame(); }
 void Backend::resize(int w, int h) { mImpl->resize(w, h); }
-void Backend::screenshot(void) { mImpl->screenshot(); }
+RGB* Backend::get_screenshot(void) { return mImpl->get_screenshot(); }
+void Backend::write_screenshot(void) { mImpl->write_screenshot(); }
 void Backend::add_tris(void) { mImpl->add_tris(); }
 
 void Backend::set_modelview(const glm::mat4x4& m) { mImpl->set_modelview(m); }

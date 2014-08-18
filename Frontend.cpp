@@ -21,8 +21,8 @@ struct Frontend::Impl {
             return false;
         }
         
-        modes = glfwGetVideoModes(glfwGetPrimaryMonitor(), &nVidmodes);
-        for (int i = 0;i < nVidmodes;++i) {
+        modes = glfwGetVideoModes(glfwGetPrimaryMonitor(), &m_num_videomodes);
+        for (int i = 0;i < m_num_videomodes;++i) {
             LOG(LOG_INFORMATION, "%d %d at %dHz (R%dG%dB%d)",
                 modes[i].width,
                 modes[i].height,
@@ -55,7 +55,7 @@ struct Frontend::Impl {
     }
 
     const GLFWvidmode *modes;
-    int nVidmodes;
+    int m_num_videomodes;
 };
 
 bool Frontend::startup(int w, int h) {

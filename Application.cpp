@@ -62,6 +62,7 @@ int Application::Run(void) {
 }
 
 bool Application::startup(void) {
+    srand(time(NULL));
     // various subsystems (be careful with order, dependencies)
     // GLFW boilerplate
     glfwSetErrorCallback(error_callback);
