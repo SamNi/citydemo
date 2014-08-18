@@ -5,8 +5,8 @@
 namespace Lua {
 
 #include <lua/lua.hpp>
-bool Startup(void);
-void Shutdown(void);
+bool startup(void);
+void shutdown(void);
 
 // use these with caution
 // TODO: Think of how to break the dependency
