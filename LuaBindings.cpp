@@ -28,7 +28,7 @@ static const LuaBind bindings[] = {
 static const int nBindings = sizeof(bindings) / sizeof(LuaBind);
 lua_State *lState = NULL;
 
-bool Startup(void) {
+bool startup(void) {
     int i;
 
     if (lState) {
@@ -44,7 +44,7 @@ bool Startup(void) {
     return true;
 }
 
-void Shutdown(void) {
+void shutdown(void) {
     if (!lState) {
         LOG(LOG_WARNING, "Redundant Lua Shutdown()\n");
         return;
