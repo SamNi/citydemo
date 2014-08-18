@@ -1,3 +1,4 @@
+#ifndef _TEST_BUILD
 // Copyright [year] <Copyright Owner>
 #include "./citydemo.h"
 
@@ -138,3 +139,5 @@ int main(int argc, char *argv[]) {
     Backend::Shutdown();
     */
 }
+
+#endif  // ~_TEST_BUILD

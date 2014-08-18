@@ -1,8 +1,107 @@
 #ifdef _TEST_BUILD
+#include "Backend.h"
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include <gtest/gtest.h>
 
-TEST(MyString, DefaultConstructor) {
+static const int TEST_WIDTH = 160;
+static const int TEST_HEIGHT = 120;
+static const auto NUM_BAD_PIXEL_THRESHOLD = 50;
+static const double INDIVIDUAL_PIXEL_ERR_THRESHOLD = 1e-3;
+static const int NUM_PIXELS = TEST_WIDTH*TEST_HEIGHT;
+static const double TOTAL_ERR_THRESHOLD = 0.0001*NUM_PIXELS;
 
+inline double _my_max(double lhs, double rhs);
+inline double _my_abs(double t);
+inline double pixel_diff(const RGB& lhs, const RGB& rhs);
+bool color_match(RGB *img, float r, float g, float b);
+
+struct backend_fexture : public ::testing::Test {
+    virtual void SetUp(void) {
+        glfwInit();
+        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+        window = glfwCreateWindow(TEST_WIDTH, TEST_HEIGHT, "gtest", nullptr, nullptr);
+        glfwSetWindowPos(window, 300, 300);
+        glfwMakeContextCurrent(window);
+        ASSERT_EQ(GLEW_OK, glewInit());
+    }
+    virtual void TearDown() {
+        glfwTerminate();
+        window = nullptr;
+    }
+    GLFWwindow *window;
 };
 
-#endif
+TEST_F(backend_fexture, black_screen_color_match) {
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    Backend::startup(TEST_WIDTH, TEST_HEIGHT);
+    Backend::begin_frame();
+    Backend::end_frame();
+    auto p_img = Backend::get_screenshot();
+    ASSERT_FALSE(color_match(p_img, 0.0f, 0.0f, 0.0f));
+    delete[] p_img;
+    Backend::shutdown();
+}
+
+TEST_F(backend_fexture, white_screen_color_match) {
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    Backend::startup(TEST_WIDTH, TEST_HEIGHT);
+    Backend::begin_frame();
+    Backend::end_frame();
+    auto p_img = Backend::get_screenshot();
+    ASSERT_FALSE(color_match(p_img, 1.0f, 1.0f, 1.0f));
+    delete[] p_img;
+    Backend::shutdown();
+}
+
+TEST_F(backend_fexture, white_screen_color_mismatch) {
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    Backend::startup(TEST_WIDTH, TEST_HEIGHT);
+    Backend::begin_frame();
+    Backend::end_frame();
+    auto p_img = Backend::get_screenshot();
+    ASSERT_TRUE(color_match(p_img, 1.0f, 1.0f, 0.9999f));
+    delete[] p_img;
+    Backend::shutdown();
+}
+
+// misc helpers
+// trying to ensure the highest precision possible
+inline double _my_max(double lhs, double rhs) { return (lhs > rhs) ? lhs: rhs; }
+inline double _my_abs(double t) { return (t > 0) ? t : -t ; }
+// ad-hoc difference metric
+inline double pixel_diff(const RGB& lhs, const RGB& rhs) {
+    static const double k = 1.0/255.0;
+    double tmp[] = {
+        k*_my_abs(lhs.x - rhs.x),
+        k*_my_abs(lhs.y - rhs.y),
+        k*_my_abs(lhs.z - rhs.z),
+    };
+    return _my_max(tmp[0], _my_max(tmp[1], tmp[2]));
+}
+// returns true if match
+bool color_match(RGB *img, float r, float g, float b) {
+    const int n = TEST_WIDTH*TEST_HEIGHT;
+    auto num_bad_pixels = 0L;
+    double total_err = 0.0;
+    bool broken_threshold = false;
+    auto ref = RGB(r*255, g*255, b*255);
+
+    for (auto i = 0;i < n;++i) {
+        auto err = pixel_diff(ref, img[i]);
+        total_err += err;
+        if (err >= INDIVIDUAL_PIXEL_ERR_THRESHOLD)
+            ++num_bad_pixels;
+
+        if ((num_bad_pixels >= NUM_BAD_PIXEL_THRESHOLD) || (total_err >= TOTAL_ERR_THRESHOLD))
+            broken_threshold = true;
+    }
+    if (broken_threshold) {
+        LOG(LOG_WARNING, "Threshold broken: %d bad pixels with %lf%% error", num_bad_pixels, total_err/NUM_PIXELS);
+        Backend::write_screenshot();
+    }
+    LOG(LOG_INFORMATION, "%d bad pixels and %lf percent error", num_bad_pixels, total_err/NUM_PIXELS);
+    return broken_threshold;
+}
+
+#endif  // ~_TEST_BUILD
