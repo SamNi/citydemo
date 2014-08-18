@@ -1,6 +1,12 @@
+#if 0
 // Copyright [year] <Copyright Owner>
 #ifndef _PARTICLESYSTEM_H_
 #define _PARTICLESYSTEM_H_
+#include "essentials.h"
+#include "IEntity.h"
+#include "Frontend.h"
+#include "GLM.h"
+
 /*
 #include "essentials.h"
 #include "GL.h"
@@ -22,6 +28,7 @@ private:
     
 };
 */
+/*
 #include "essentials.h"
 #include "GLM.h"
 #include "./IEntity.h"
@@ -41,5 +48,7 @@ struct PSystem : public IEntity {
     Particle *elem;
     int nParticles;
 };
-
+*/
 #endif // ~_PARTICLESYSTEM_H_
+
+#endif

@@ -1,4 +1,11 @@
 // Copyright [year] <Copyright Owner>
+#include "./ParticleSystem.h"
+
+
+
+
+
+
 /*
 #include "ParticleSystem.h"
 #include "GLM.h"
@@ -90,6 +97,7 @@ void ParticleSystem::Draw(void) {
     glDrawArrays(GL_TRIANGLES, 0, nParticles);
 }
 */
+/*
 #include "ParticleSystem.h"
 
 void Particle::accept(const IRenderer* r) const {
@@ -112,4 +120,4 @@ void PSystem::accept(const IRenderer* r) const {
     for (int i = 0;i < nParticles;++i)
         r->visit(&elem[i]);
 }
-
+*/
