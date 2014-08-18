@@ -4,8 +4,8 @@
 #include <GLFW/glfw3.h>
 #include <gtest/gtest.h>
 
-static const int TEST_WIDTH = 160;
-static const int TEST_HEIGHT = 120;
+static const int TEST_WIDTH = 320;
+static const int TEST_HEIGHT = 200;
 static const auto NUM_BAD_PIXEL_THRESHOLD = 50;
 static const double INDIVIDUAL_PIXEL_ERR_THRESHOLD = 1e-3;
 static const int NUM_PIXELS = TEST_WIDTH*TEST_HEIGHT;
@@ -16,7 +16,7 @@ inline double _my_abs(double t);
 inline double pixel_diff(const RGB& lhs, const RGB& rhs);
 bool color_match(RGB *img, float r, float g, float b);
 
-struct backend_fexture : public ::testing::Test {
+struct backend_fixture : public ::testing::Test {
     virtual void SetUp(void) {
         glfwInit();
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
@@ -32,7 +32,7 @@ struct backend_fexture : public ::testing::Test {
     GLFWwindow *window;
 };
 
-TEST_F(backend_fexture, black_screen_color_match) {
+TEST_F(backend_fixture, black_screen_color_match) {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     Backend::startup(TEST_WIDTH, TEST_HEIGHT);
     Backend::begin_frame();
@@ -43,7 +43,7 @@ TEST_F(backend_fexture, black_screen_color_match) {
     Backend::shutdown();
 }
 
-TEST_F(backend_fexture, white_screen_color_match) {
+TEST_F(backend_fixture, white_screen_color_match) {
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     Backend::startup(TEST_WIDTH, TEST_HEIGHT);
     Backend::begin_frame();
@@ -54,7 +54,7 @@ TEST_F(backend_fexture, white_screen_color_match) {
     Backend::shutdown();
 }
 
-TEST_F(backend_fexture, white_screen_color_mismatch) {
+TEST_F(backend_fixture, white_screen_color_mismatch) {
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     Backend::startup(TEST_WIDTH, TEST_HEIGHT);
     Backend::begin_frame();
