@@ -22,6 +22,29 @@
 
 #define PI              (3.141592653589793238462643)
 
+typedef glm::u8vec3 RGBPixel;
+typedef glm::u8vec4 RGBAPixel;
+typedef glm::u16vec2 TexCoord;
+typedef uint32_t PackedNormal;
+
+enum PixelColor {
+    // look up the original VGA 16-color palette (4-bit RGBI) to see where these came from 
+    BLACK = 0,
+    DARK_BLUE, DARK_GREEN, DARK_CYAN, 
+    DARK_RED, DARK_PURPLE, BROWN, GRAY, 
+    DARK_GRAY, BLUE, GREEN, CYAN,
+    RED, PURPLE, YELLOW, WHITE,
+    FINAL_FANTASY, // old habits die hard
+};
+const RGBPixel COLOR[] = {
+    RGBPixel(0,0,0), RGBPixel(0,0,127), RGBPixel(0,127,0), RGBPixel(0,127,127),
+    RGBPixel(127,0,0), RGBPixel(127,0,127), RGBPixel(127,85,0), RGBPixel(127,127,127), 
+    RGBPixel(85, 85, 85), RGBPixel(85,85,255), RGBPixel(85,255,85), RGBPixel(85,255,255), 
+    RGBPixel(255,85,85), RGBPixel(255,85,255), RGBPixel(255,255,85), RGBPixel(255,255,255), 
+    RGBPixel(0, 0, 136),
+};
+const int NUM_COLORS = sizeof(COLOR) / sizeof(RGBPixel);
+
 #ifdef _WIN32
 #define PATH_SEP                    "\\"
 #else
