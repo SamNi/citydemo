@@ -88,11 +88,11 @@ private:
             glm::vec3(+1.0f, +1.0f, 0.0f),
             glm::vec3(-1.0f, +1.0f, 0.0f),
         };
-        static const RGBA colors[] = {
-            RGBA(255, 255, 255, 255),
-            RGBA(255, 255, 255, 255),
-            RGBA(255, 255, 255, 255),
-            RGBA(255, 255, 255, 255),
+        static const RGBAPixel colors[] = {
+            RGBAPixel(255, 255, 255, 255),
+            RGBAPixel(255, 255, 255, 255),
+            RGBAPixel(255, 255, 255, 255),
+            RGBAPixel(255, 255, 255, 255),
         };
         static const TexCoord texCoords[] = {
             TexCoord(0, 0),
@@ -411,7 +411,7 @@ struct SurfaceTriangles {
     // that the number of them is the same as the number
     // of vertices
     // uint32_t nColors;
-    RGBA *colors;
+    RGBAPixel *colors;
 
     // ditto for texture coordinates
     // uint32_t nTextureCoordinates;
@@ -430,7 +430,7 @@ SurfaceTriangles st(3*NUM_TRIANGLES, 3*NUM_TRIANGLES);
 
 struct VertexAttributePointers {
     glm::vec3 *vertBuf;
-    RGBA *colBuf;
+    RGBAPixel *colBuf;
     TexCoord *texCoordBuf;
     GLuint *normalBuf;
 };
@@ -568,7 +568,7 @@ struct GeometryBuffer {
         glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_POSITION]);
         m_vertex_attr.vertBuf = (glm::vec3*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_COLOR]);
-        m_vertex_attr.colBuf = (RGBA*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        m_vertex_attr.colBuf = (RGBAPixel*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_TEXCOORD]);
         m_vertex_attr.texCoordBuf = (TexCoord*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
         glBindBuffer(GL_ARRAY_BUFFER, buf_id[VERTEX_ATTR_NORMAL]);
@@ -641,7 +641,7 @@ struct GeometryBuffer {
 
         for (i = 0;i < st.nVertices;++i) {
             vertex_attributes.vertBuf[i] = st.vertices[i];
-            vertex_attributes.colBuf[i] = (st.colors != nullptr) ? st.colors[i] : RGBA(255,255,255,255);
+            vertex_attributes.colBuf[i] = (st.colors != nullptr) ? st.colors[i] : RGBAPixel(255,255,255,255);
             vertex_attributes.texCoordBuf[i] = (st.texture_coordinates != nullptr) ? st.texture_coordinates[i] : TexCoord(0, 0);
             vertex_attributes.normalBuf[i] = (st.normals != nullptr) ? st.normals[i] : normal_pack(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
         }
@@ -747,13 +747,13 @@ struct Backend::Impl {
         LOG(LOG_INFORMATION, "%s", mSpecs.renderer);
         LOG(LOG_INFORMATION, "%s", mSpecs.vendor);
         LOG(LOG_INFORMATION, "%s", mSpecs.version);
-        mSpecs.extensions.resize(mSpecs.nExtensions, "<null>");
+        mSpecs.extensions.resize(mSpecs.nExtensions);
 
         for (int i = 0;i < mSpecs.nExtensions;++i) {
-            static const GLubyte *c;
+            static const unsigned char *c;
             c = glGetStringi(GL_EXTENSIONS, i);
             LOG(LOG_TRACE, "extension: %s", c);
-            mSpecs.extensions[i] = (const char*)c;
+            mSpecs.extensions[i] = c;
         }
 
     }
@@ -782,10 +782,8 @@ struct Backend::Impl {
             offscreenFB->Bind();    
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-#if 0
         geom_buf.cmd_queues.Clear();
         geom_buf.open_command_queue();
-#endif
     }
 
     uint32_t loc;
@@ -819,7 +817,6 @@ struct Backend::Impl {
 
     }
     void end_frame(void) {
-#if 0
         mImpl->geom_buf.add_draw_command(loc, st.nIndices);
         geom_buf.close_command_queue();
         set_instanced_mode(false);
@@ -847,16 +844,15 @@ struct Backend::Impl {
         if (offscreenRender)
             offscreenFB->Blit(current_screen_width, current_screen_height);
         geom_buf.cmd_queues.Swap();
-#endif
     }
     void resize(int w, int h) {
         glViewport(0, 0, w, h);
         current_screen_width = w;
         current_screen_height = h;
     }
-    RGB* get_screenshot(void) const {
-        uint32_t buf_size = current_screen_width*current_screen_height*sizeof(RGB);
-        RGB *ret = new RGB[buf_size];
+    RGBPixel* get_screenshot(void) const {
+        uint32_t buf_size = current_screen_width*current_screen_height*sizeof(RGBPixel);
+        RGBPixel *ret = new RGBPixel[buf_size];
         glReadPixels(0, 0, current_screen_width, current_screen_height, GL_RGB, GL_UNSIGNED_BYTE, ret);
         imgflip(current_screen_width, current_screen_height, 3, (uint8_t*)ret);
         return ret;
@@ -906,6 +902,8 @@ struct Backend::Impl {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 
+    void set_clear_color(const RGBPixel& c) const { glClearColor(c.r/255.0f, c.g/255.0f, c.b/255.0f, 1.0f); }
+    void set_clear_color(const RGBAPixel& c) const { glClearColor(c.r/255.0f, c.g/255.0f, c.b/255.0f, c.a/1.0f); }
     void enable_depth_testing(void) { glEnable(GL_DEPTH_TEST); }
     void disable_depth_testing(void) { glDisable(GL_DEPTH_TEST); }
 
@@ -934,26 +932,6 @@ struct Backend::Impl {
     PerfCounters m_perf_count;
     const PerfCounters& get_performance_count(void) const { return m_perf_count; }
 
-    // Various GL specs
-    struct Specs {
-        // Try to keep in alphabetical order
-        int             nExtensions;
-        int             nMaxCombinedTextureImageUnits;
-        int             nMaxDrawBuffers;
-        int             nMaxElementsIndices;
-        int             nMaxElementsVertices;
-        int             nMaxFragmentUniformBlocks;
-        int             nMaxGeometryUniformBlocks;
-        int             nMaxTextureImageUnits;
-        int             nMaxUniformBufferBindings;
-        int             nMaxVertexAttribs;
-        int             nMaxVertexUniformBlocks;
-
-        const GLubyte*  renderer;
-        const GLubyte*  vendor;
-        const GLubyte*  version;
-        std::vector<const char*> extensions;
-    };
     Specs mSpecs;
 
     // declaring this statically so the counter is preserved
@@ -979,7 +957,7 @@ void Backend::shutdown(void) {
 void Backend::begin_frame(void) { mImpl->begin_frame(); }
 void Backend::end_frame(void) { mImpl->end_frame(); }
 void Backend::resize(int w, int h) { mImpl->resize(w, h); }
-RGB* Backend::get_screenshot(void) { return mImpl->get_screenshot(); }
+RGBPixel* Backend::get_screenshot(void) { return mImpl->get_screenshot(); }
 void Backend::write_screenshot(void) { mImpl->write_screenshot(); }
 bool Backend::write_screenshot(const char *filename) { return mImpl->write_screenshot(filename); }
 void Backend::add_tris(void) { mImpl->add_tris(); }
@@ -987,6 +965,8 @@ void Backend::add_tris(void) { mImpl->add_tris(); }
 void Backend::set_modelview(const glm::mat4x4& m) { mImpl->set_modelview(m); }
 void Backend::set_projection(const glm::mat4x4& m) { mImpl->set_projection(m); }
 
+void Backend::set_clear_color(const RGBPixel& c) { mImpl->set_clear_color(c); }
+void Backend::set_clear_color(const RGBAPixel& c) { mImpl->set_clear_color(c); }
 void Backend::enable_depth_testing(void) { mImpl->enable_depth_testing(); }
 void Backend::disable_depth_testing(void) { mImpl->disable_depth_testing(); }
 void Backend::enable_blending(void) { mImpl->enable_blending(); }

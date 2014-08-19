@@ -20,7 +20,7 @@ struct Frontend::Impl {
             LOG(LOG_CRITICAL, "Backend::Startup returned false\n");
             return false;
         }
-        
+        Backend::set_clear_color(RGBPixel(255, 255, 255));
         modes = glfwGetVideoModes(glfwGetPrimaryMonitor(), &m_num_videomodes);
         for (int i = 0;i < m_num_videomodes;++i) {
             LOG(LOG_INFORMATION, "%d %d at %dHz (R%dG%dB%d)",

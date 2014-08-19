@@ -17,8 +17,8 @@
 // do I really want to double buf anything?
 //      and if so, what?
 
-typedef glm::u8vec3 RGB;
-typedef glm::u8vec4 RGBA;
+typedef glm::u8vec3 RGBPixel;
+typedef glm::u8vec4 RGBAPixel;
 typedef glm::u16vec2 TexCoord;
 typedef uint32_t PackedNormal;
 
@@ -32,7 +32,7 @@ public:
     static void     shutdown(void);
 
     static void     resize(int w, int h);
-    static RGB*     get_screenshot(void);
+    static RGBPixel*     get_screenshot(void);
     static void     write_screenshot(void);
     static bool     write_screenshot(const char *fname);
     static void     add_tris(void);
@@ -40,6 +40,8 @@ public:
     static void     set_modelview(const glm::mat4x4& m);
     static void     set_projection(const glm::mat4x4& m);
 
+    static void     set_clear_color(const RGBPixel& color);
+    static void     set_clear_color(const RGBAPixel& color);
     static void     enable_depth_testing(void);
     static void     disable_depth_testing(void);
     static void     enable_blending(void);
@@ -56,6 +58,27 @@ private:
 // Per-frame performance stats
 struct PerfCounters {
     uint32_t        n_triangles_drawn;
+};
+
+// Various GL specs
+struct Specs {
+    // Try to keep in alphabetical order
+    int             nExtensions;
+    int             nMaxCombinedTextureImageUnits;
+    int             nMaxDrawBuffers;
+    int             nMaxElementsIndices;
+    int             nMaxElementsVertices;
+    int             nMaxFragmentUniformBlocks;
+    int             nMaxGeometryUniformBlocks;
+    int             nMaxTextureImageUnits;
+    int             nMaxUniformBufferBindings;
+    int             nMaxVertexAttribs;
+    int             nMaxVertexUniformBlocks;
+
+    const unsigned char*  renderer;
+    const unsigned char*  vendor;
+    const unsigned char*  version;
+    std::vector<const unsigned char*> extensions;
 };
 
 

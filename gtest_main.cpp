@@ -13,8 +13,8 @@ static const double TOTAL_ERR_THRESHOLD = 0.0001*NUM_PIXELS;
 
 inline double _my_max(double lhs, double rhs);
 inline double _my_abs(double t);
-inline double pixel_diff(const RGB& lhs, const RGB& rhs);
-bool color_match(RGB *img, float r, float g, float b);
+inline double pixel_diff(const RGBPixel& lhs, const RGBPixel& rhs);
+bool color_match(RGBPixel *img, float r, float g, float b);
 
 struct backend_fixture : public ::testing::Test {
     virtual void SetUp(void) {
@@ -74,7 +74,7 @@ TEST_F(backend_fixture, empty_scene_triangle_count) {
 inline double _my_max(double lhs, double rhs) { return (lhs > rhs) ? lhs: rhs; }
 inline double _my_abs(double t) { return (t > 0) ? t : -t ; }
 // ad-hoc difference metric
-inline double pixel_diff(const RGB& lhs, const RGB& rhs) {
+inline double pixel_diff(const RGBPixel& lhs, const RGBPixel& rhs) {
     static const double k = 1.0/255.0;
     double tmp[] = {
         k*_my_abs(lhs.x - rhs.x),
@@ -84,12 +84,12 @@ inline double pixel_diff(const RGB& lhs, const RGB& rhs) {
     return _my_max(tmp[0], _my_max(tmp[1], tmp[2]));
 }
 // returns true if match
-bool color_match(RGB *img, float r, float g, float b) {
+bool color_match(RGBPixel *img, float r, float g, float b) {
     const int n = TEST_WIDTH*TEST_HEIGHT;
     auto num_bad_pixels = 0L;
     double total_err = 0.0;
     bool broken_threshold = false;
-    auto ref = RGB(r*255, g*255, b*255);
+    auto ref = RGBPixel(r*255, g*255, b*255);
 
     for (auto i = 0;i < n;++i) {
         auto err = pixel_diff(ref, img[i]);
@@ -109,7 +109,7 @@ bool color_match(RGB *img, float r, float g, float b) {
 }
 
 // must have same dimensions!!!
-bool image_match(RGB* lhs, RGB* rhs) {
+bool image_match(RGBPixel* lhs, RGBPixel* rhs) {
     const int n = TEST_WIDTH*TEST_HEIGHT;
     auto num_bad_pixels = 0L;
     double total_err = 0.0;
