@@ -727,7 +727,7 @@ private:
 };
 
 struct Backend::Impl {
-    inline void clear_performance_counters(void) { wipe_memory(&mPerfCounts, sizeof(PerfCounters)); }
+    inline void clear_performance_counters(void) { wipe_memory(&m_perf_count, sizeof(PerfCounters)); }
     inline void query_hardware_specs(void) {
         glGetIntegerv(GL_NUM_EXTENSIONS, &mSpecs.nExtensions);
         glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &mSpecs.nMaxCombinedTextureImageUnits);
@@ -931,12 +931,8 @@ struct Backend::Impl {
 
     bool offscreenRender;
 
-    // Per-frame performance stats
-    struct PerfCounters {
-        /// TBD
-        int poop;
-    };
-    PerfCounters mPerfCounts;
+    PerfCounters m_perf_count;
+    const PerfCounters& get_performance_count(void) const { return m_perf_count; }
 
     // Various GL specs
     struct Specs {
@@ -996,3 +992,4 @@ void Backend::disable_depth_testing(void) { mImpl->disable_depth_testing(); }
 void Backend::enable_blending(void) { mImpl->enable_blending(); }
 void Backend::enable_additive_blending(void) { mImpl->enable_additive_blending(); }
 void Backend::disable_blending(void) { mImpl->disable_blending(); }
+const PerfCounters& Backend::get_performance_count(void) { return mImpl->get_performance_count(); }

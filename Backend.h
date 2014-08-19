@@ -22,6 +22,8 @@ typedef glm::u8vec4 RGBA;
 typedef glm::u16vec2 TexCoord;
 typedef uint32_t PackedNormal;
 
+struct PerfCounters;
+
 class Backend {
 public:
     static bool     startup(int w, int h);
@@ -44,8 +46,17 @@ public:
     static void     enable_additive_blending(void);
     static void     disable_blending(void);
 
+    static const PerfCounters& get_performance_count(void);
+
 private:
     struct Impl;
     static std::unique_ptr<Impl> mImpl;
 };
+
+// Per-frame performance stats
+struct PerfCounters {
+    uint32_t        n_triangles_drawn;
+};
+
+
 #endif // ~_BACKEND_H_

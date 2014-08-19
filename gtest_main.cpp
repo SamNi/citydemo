@@ -24,8 +24,10 @@ struct backend_fixture : public ::testing::Test {
         glfwSetWindowPos(window, 300, 300);
         glfwMakeContextCurrent(window);
         ASSERT_EQ(GLEW_OK, glewInit());
+        Backend::startup(TEST_WIDTH, TEST_HEIGHT);
     }
     virtual void TearDown() {
+        Backend::shutdown();
         glfwTerminate();
         window = nullptr;
     }
@@ -34,35 +36,37 @@ struct backend_fixture : public ::testing::Test {
 
 TEST_F(backend_fixture, black_screen_color_match) {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    Backend::startup(TEST_WIDTH, TEST_HEIGHT);
     Backend::begin_frame();
     Backend::end_frame();
     auto p_img = Backend::get_screenshot();
+    Backend::write_screenshot();
     ASSERT_FALSE(color_match(p_img, 0.0f, 0.0f, 0.0f));
     delete[] p_img;
-    Backend::shutdown();
 }
 
 TEST_F(backend_fixture, white_screen_color_match) {
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    Backend::startup(TEST_WIDTH, TEST_HEIGHT);
     Backend::begin_frame();
     Backend::end_frame();
     auto p_img = Backend::get_screenshot();
+    Backend::write_screenshot();
     ASSERT_FALSE(color_match(p_img, 1.0f, 1.0f, 1.0f));
     delete[] p_img;
-    Backend::shutdown();
 }
 
 TEST_F(backend_fixture, white_screen_color_mismatch) {
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    Backend::startup(TEST_WIDTH, TEST_HEIGHT);
     Backend::begin_frame();
     Backend::end_frame();
     auto p_img = Backend::get_screenshot();
+    Backend::write_screenshot();
     ASSERT_TRUE(color_match(p_img, 1.0f, 1.0f, 0.9999f));
     delete[] p_img;
-    Backend::shutdown();
+}
+TEST_F(backend_fixture, empty_scene_triangle_count) {
+    Backend::begin_frame();
+    Backend::end_frame();
+    ASSERT_EQ(0, Backend::get_performance_count().n_triangles_drawn);
 }
 
 // misc helpers
