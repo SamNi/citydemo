@@ -4,8 +4,8 @@
 #include <GLFW/glfw3.h>
 #include <gtest/gtest.h>
 
-static const int TEST_WIDTH = 320;
-static const int TEST_HEIGHT = 200;
+static const int TEST_WIDTH = 160;
+static const int TEST_HEIGHT = 100;
 static const auto NUM_BAD_PIXEL_THRESHOLD = 50;
 static const double INDIVIDUAL_PIXEL_ERR_THRESHOLD = 1e-3;
 static const int NUM_PIXELS = TEST_WIDTH*TEST_HEIGHT;
@@ -89,6 +89,30 @@ bool color_match(RGB *img, float r, float g, float b) {
 
     for (auto i = 0;i < n;++i) {
         auto err = pixel_diff(ref, img[i]);
+        total_err += err;
+        if (err >= INDIVIDUAL_PIXEL_ERR_THRESHOLD)
+            ++num_bad_pixels;
+
+        if ((num_bad_pixels >= NUM_BAD_PIXEL_THRESHOLD) || (total_err >= TOTAL_ERR_THRESHOLD))
+            broken_threshold = true;
+    }
+    if (broken_threshold) {
+        LOG(LOG_WARNING, "Threshold broken: %d bad pixels with %lf%% error", num_bad_pixels, total_err/NUM_PIXELS);
+        Backend::write_screenshot();
+    }
+    LOG(LOG_INFORMATION, "%d bad pixels and %lf percent error", num_bad_pixels, total_err/NUM_PIXELS);
+    return broken_threshold;
+}
+
+// must have same dimensions!!!
+bool image_match(RGB* lhs, RGB* rhs) {
+    const int n = TEST_WIDTH*TEST_HEIGHT;
+    auto num_bad_pixels = 0L;
+    double total_err = 0.0;
+    bool broken_threshold = false;
+
+    for (auto i = 0;i < n;++i) {
+        auto err = pixel_diff(lhs[i], rhs[i]);
         total_err += err;
         if (err >= INDIVIDUAL_PIXEL_ERR_THRESHOLD)
             ++num_bad_pixels;
