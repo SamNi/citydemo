@@ -763,7 +763,6 @@ struct Backend::Impl {
         // misc. defaults
         current_screen_width = w;
         current_screen_height = h;
-        screenshotCounter = 0;
         offscreenRender = PIXELATED;
 
         clear_performance_counters();
@@ -931,7 +930,6 @@ struct Backend::Impl {
     int current_screen_height;
 
     bool offscreenRender;
-    uint16_t screenshotCounter;
 
     // Per-frame performance stats
     struct PerfCounters {
@@ -961,7 +959,13 @@ struct Backend::Impl {
         std::vector<const char*> extensions;
     };
     Specs mSpecs;
+
+    // declaring this statically so the counter is preserved
+    // in between backend power cycles and the automated
+    // tests don't write over each other's results
+    static uint16_t screenshotCounter;
 };
+uint16_t Backend::Impl::screenshotCounter = 0;
 
 std::unique_ptr<Backend::Impl> Backend::mImpl = nullptr;
 
