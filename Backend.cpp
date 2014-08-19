@@ -864,11 +864,18 @@ struct Backend::Impl {
     }
 
     void write_screenshot(void) {
+        static char date_time_string[128] = "";
+        static char filename[1024] = "";
+        static time_t raw_time;
+
+        raw_time = time(nullptr);
+        strftime(date_time_string, 127, "%Y%m%d_%H%M%S", localtime(&raw_time));
+        sprintf(filename, "screenshot_%s_%03u.png", date_time_string, ++screenshotCounter);
+        write_screenshot(filename);
+    }
+    bool write_screenshot(const char *filename) {
         int nBytes = 0;
         png_image image = { NULL };
-        static char filename[512] = { '\0' };
-
-        sprintf(filename, "screenshot%05u.png", screenshotCounter++);
 
         LOG(LOG_INFORMATION, "Screenshot %dx%d to %s", current_screen_width, current_screen_height, filename);
 
@@ -880,10 +887,13 @@ struct Backend::Impl {
         image.version = PNG_IMAGE_VERSION;
         image.format = PNG_FORMAT_RGB;
 
-        if (!png_image_write_to_file(&image, filename, 0, (void*)buf, 0, nullptr))
+        if (!png_image_write_to_file(&image, filename, 0, (void*)buf, 0, nullptr)) {
             LOG(LOG_WARNING, "Failed to write screenshot to %s", filename);
-
+            delete[] buf;
+            return false;
+        }
         delete[] buf;
+        return true;
     }
 
     void disable_blending(void) { glDisable(GL_BLEND); }
@@ -971,6 +981,7 @@ void Backend::end_frame(void) { mImpl->end_frame(); }
 void Backend::resize(int w, int h) { mImpl->resize(w, h); }
 RGB* Backend::get_screenshot(void) { return mImpl->get_screenshot(); }
 void Backend::write_screenshot(void) { mImpl->write_screenshot(); }
+bool Backend::write_screenshot(const char *filename) { return mImpl->write_screenshot(filename); }
 void Backend::add_tris(void) { mImpl->add_tris(); }
 
 void Backend::set_modelview(const glm::mat4x4& m) { mImpl->set_modelview(m); }

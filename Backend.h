@@ -30,8 +30,9 @@ public:
     static void     shutdown(void);
 
     static void     resize(int w, int h);
-    static void     write_screenshot(void);
     static RGB*     get_screenshot(void);
+    static void     write_screenshot(void);
+    static bool     write_screenshot(const char *fname);
     static void     add_tris(void);
 
     static void     set_modelview(const glm::mat4x4& m);
