@@ -43,6 +43,13 @@ const RGBPixel COLOR[] = {
     RGBPixel(255,85,85), RGBPixel(255,85,255), RGBPixel(255,255,85), RGBPixel(255,255,255), 
     RGBPixel(0, 0, 136),
 };
+const RGBAPixel COLOR_ALPHA[] = {
+    RGBAPixel(0,0,0, 255), RGBAPixel(0,0,127, 255), RGBAPixel(0,127,0, 255), RGBAPixel(0,127,127, 255),
+    RGBAPixel(127,0,0, 255), RGBAPixel(127,0,127, 255), RGBAPixel(127,85,0, 255), RGBAPixel(127,127,127, 255), 
+    RGBAPixel(85, 85, 85, 255), RGBAPixel(85,85,255, 255), RGBAPixel(85,255,85, 255), RGBAPixel(85,255,255, 255), 
+    RGBAPixel(255,85,85, 255), RGBAPixel(255,85,255, 255), RGBAPixel(255,255,85, 255), RGBAPixel(255,255,255, 255), 
+    RGBAPixel(0, 0, 136, 255),
+};
 const int NUM_COLORS = sizeof(COLOR) / sizeof(RGBPixel);
 
 #ifdef _WIN32
@@ -68,6 +75,8 @@ char *readFile(const char *fname);
 void _log(LogLevel l, const char *srcFile, int lineNo, const char *funcName, const char *msg, ...);
 void checkGL(void);
 void imgflip(int w, int h, int nComponents, uint8_t *pixels);
+// for use with GL_UNSIGNED_INT_2_10_10_10_REV
+PackedNormal normal_pack(const glm::vec4& v);
 
 typedef float Real;
 

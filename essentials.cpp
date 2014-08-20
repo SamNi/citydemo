@@ -168,3 +168,9 @@ void APIENTRY debugproc(GLenum source, GLenum type, GLuint id, GLenum severity,
     }
 }
 
+PackedNormal normal_pack(const glm::vec4& v) {
+    return ((PackedNormal)(1023.0f*v.x) << 0) | 
+        ((PackedNormal)(1023.0f*v.y) << 10) | 
+        ((PackedNormal)(1023.0f*v.z) << 20) | 
+        ((PackedNormal)(3.0f*v.a) << 30);
+}

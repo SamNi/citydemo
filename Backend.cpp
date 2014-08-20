@@ -361,69 +361,41 @@ private:
 
 static Framebuffer *offscreenFB = nullptr;
 
-// for use with GL_UNSIGNED_INT_2_10_10_10_REV
-inline PackedNormal normal_pack(const glm::vec4& v) {
-    return ((PackedNormal)(1023.0f*v.x) << 0) | 
-        ((PackedNormal)(1023.0f*v.y) << 10) | 
-        ((PackedNormal)(1023.0f*v.z) << 20) | 
-        ((PackedNormal)(3.0f*v.a) << 30);
+SurfaceTriangles::SurfaceTriangles(void) { 
+    wipe_memory(this, sizeof(SurfaceTriangles)); 
 }
-
-struct SurfaceTriangles {
-    SurfaceTriangles(void) { 
-        wipe_memory(this, sizeof(SurfaceTriangles)); 
-    }
-    SurfaceTriangles(const uint32_t nv, const uint32_t nidx) {
-        assert(nv && nidx);
-        wipe_memory(this, sizeof(SurfaceTriangles));
-        vertices = new glm::vec3[nv];
-        texture_coordinates = new TexCoord[nv];
-        normals = new PackedNormal[nv];
-        indices = new GLuint[nidx];
-        nVertices = nv;
-        nIndices = nidx;
-    }
-    ~SurfaceTriangles(void) {
-        delete[] vertices;
-        delete[] colors;
-        delete[] texture_coordinates;
-        delete[] normals;
-        delete[] indices;
-    }
-    inline uint32_t GetSize(void) const {
-        uint32_t ret = 0;
-        if (nullptr != vertices)
-            ret += sizeof(glm::vec4)*nVertices;
-        if (nullptr != colors)
-            ret += sizeof(glm::vec4)*nVertices;
-        if (nullptr != texture_coordinates)
-            ret += sizeof(glm::vec2)*nVertices;
-        if (nullptr != normals)
-            ret += sizeof(GLuint)*nVertices;
-        if (nullptr != indices)
-            ret += sizeof(GLuint)*nIndices;
-        return ret;
-    }
-    uint32_t nVertices;
-    glm::vec3 *vertices;
-
-    // if there are colors (colors != NULL), it is assumed
-    // that the number of them is the same as the number
-    // of vertices
-    // uint32_t nColors;
-    RGBAPixel *colors;
-
-    // ditto for texture coordinates
-    // uint32_t nTextureCoordinates;
-    TexCoord *texture_coordinates;
-
-    // ditto for normals
-    PackedNormal *normals;            // store as 2_10_10_10_REV, use normal_pack()
-
-    // however, not true for indices
-    uint32_t nIndices;
-    GLuint *indices;
-};
+SurfaceTriangles::SurfaceTriangles(const uint32_t nv, const uint32_t nidx) {
+    assert(nv && nidx);
+    wipe_memory(this, sizeof(SurfaceTriangles));
+    vertices = new glm::vec3[nv];
+    colors = new RGBAPixel[nv];
+    texture_coordinates = new TexCoord[nv];
+    normals = new PackedNormal[nv];
+    indices = new GLuint[nidx];
+    nVertices = nv;
+    nIndices = nidx;
+}
+SurfaceTriangles::~SurfaceTriangles(void) {
+    delete[] vertices;
+    delete[] colors;
+    delete[] texture_coordinates;
+    delete[] normals;
+    delete[] indices;
+}
+uint32_t SurfaceTriangles::GetSize(void) const {
+    uint32_t ret = 0;
+    if (nullptr != vertices)
+        ret += sizeof(glm::vec4)*nVertices;
+    if (nullptr != colors)
+        ret += sizeof(glm::vec4)*nVertices;
+    if (nullptr != texture_coordinates)
+        ret += sizeof(glm::vec2)*nVertices;
+    if (nullptr != normals)
+        ret += sizeof(GLuint)*nVertices;
+    if (nullptr != indices)
+        ret += sizeof(GLuint)*nIndices;
+    return ret;
+}
 
 static const int NUM_TRIANGLES = 1000;
 SurfaceTriangles st(3*NUM_TRIANGLES, 3*NUM_TRIANGLES);
@@ -763,6 +735,7 @@ struct Backend::Impl {
         // misc. defaults
         current_screen_width = w;
         current_screen_height = h;
+        m_draw_hud = true;
         offscreenRender = PIXELATED;
 
         clear_performance_counters();
@@ -783,12 +756,12 @@ struct Backend::Impl {
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         geom_buf.cmd_queues.Clear();
-        geom_buf.open_command_queue();
+        //geom_buf.open_command_queue();
     }
 
     uint32_t loc;
 
-    void add_tris(void) {
+    void add_random_tris(void) {
         static bool firstTime = true;
         if (false == firstTime)
             return;
@@ -816,13 +789,30 @@ struct Backend::Impl {
         mImpl->geom_buf.close_geometry_buffer();
 
     }
-    void end_frame(void) {
-        mImpl->geom_buf.add_draw_command(loc, st.nIndices);
+    uint32_t add_surface_triangles(std::shared_ptr<SurfaceTriangles> st) {
+        geom_buf.open_geometry_buffer();
+        auto ret = geom_buf.add_surface(*st);
+        geom_buf.close_geometry_buffer();
+        m_surface_triangles.emplace(ret, st);
+        return ret;
+    }
+    void draw_surface_triangles(uint32_t handle) {
+        auto it = m_surface_triangles.find(handle);
+        if (it == m_surface_triangles.end()) {
+            LOG(LOG_WARNING, "draw_surface_triangles called on missing handle %u", handle);
+            return;
+        }
+        geom_buf.open_command_queue();
+        geom_buf.add_draw_command(it->first, it->second->nIndices);
         geom_buf.close_command_queue();
+    }
+    void end_frame(void) {
+        //mImpl->geom_buf.add_draw_command(loc, st.nIndices);
+        //geom_buf.close_command_queue();
         set_instanced_mode(false);
         glBindVertexArray(geom_buf.get_vao());
         glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, (void*)(geom_buf.cmd_queues.get_base_offset_in_bytes()), geom_buf.cmd_queues.get_size(), 0);
-        {
+        if (true == m_draw_hud) {
             disable_depth_testing();
 
             // Draw 2D GUI elements
@@ -839,8 +829,8 @@ struct Backend::Impl {
             widget_manager.draw();
 
             firstTime = false;
+            set_instanced_mode(false);
         }
-        set_instanced_mode(false);
         if (offscreenRender)
             offscreenFB->Blit(current_screen_width, current_screen_height);
         geom_buf.cmd_queues.Swap();
@@ -892,6 +882,7 @@ struct Backend::Impl {
     }
 
     void disable_blending(void) { glDisable(GL_BLEND); }
+    void show_hud(bool b) { m_draw_hud = b; }
 
     void enable_additive_blending(void) {
         glEnable(GL_BLEND);
@@ -926,6 +917,8 @@ struct Backend::Impl {
     }
     int current_screen_width;
     int current_screen_height;
+    bool m_draw_hud;
+    std::map<uint32_t, std::shared_ptr<SurfaceTriangles>> m_surface_triangles;
 
     bool offscreenRender;
 
@@ -960,8 +953,9 @@ void Backend::resize(int w, int h) { mImpl->resize(w, h); }
 RGBPixel* Backend::get_screenshot(void) { return mImpl->get_screenshot(); }
 void Backend::write_screenshot(void) { mImpl->write_screenshot(); }
 bool Backend::write_screenshot(const char *filename) { return mImpl->write_screenshot(filename); }
-void Backend::add_tris(void) { mImpl->add_tris(); }
-
+void Backend::add_random_tris(void) { mImpl->add_random_tris(); }
+uint32_t Backend::add_surface_triangles(std::shared_ptr<SurfaceTriangles> st) { return mImpl->add_surface_triangles(st); }
+void Backend::draw_surface_triangles(uint32_t handle) { mImpl->draw_surface_triangles(handle); }
 void Backend::set_modelview(const glm::mat4x4& m) { mImpl->set_modelview(m); }
 void Backend::set_projection(const glm::mat4x4& m) { mImpl->set_projection(m); }
 
@@ -972,4 +966,6 @@ void Backend::disable_depth_testing(void) { mImpl->disable_depth_testing(); }
 void Backend::enable_blending(void) { mImpl->enable_blending(); }
 void Backend::enable_additive_blending(void) { mImpl->enable_additive_blending(); }
 void Backend::disable_blending(void) { mImpl->disable_blending(); }
-const PerfCounters& Backend::get_performance_count(void) { return mImpl->get_performance_count(); }
+void Backend::show_hud(bool b) { mImpl->show_hud(b); }
+
+    const PerfCounters& Backend::get_performance_count(void) { return mImpl->get_performance_count(); }

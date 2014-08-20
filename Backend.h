@@ -23,6 +23,7 @@ typedef glm::u16vec2 TexCoord;
 typedef uint32_t PackedNormal;
 
 struct PerfCounters;
+struct SurfaceTriangles;
 
 class Backend {
 public:
@@ -35,8 +36,10 @@ public:
     static RGBPixel*     get_screenshot(void);
     static void     write_screenshot(void);
     static bool     write_screenshot(const char *fname);
-    static void     add_tris(void);
+    static void     add_random_tris(void);
 
+    static uint32_t add_surface_triangles(std::shared_ptr<SurfaceTriangles> st);
+    static void     draw_surface_triangles(uint32_t handle);
     static void     set_modelview(const glm::mat4x4& m);
     static void     set_projection(const glm::mat4x4& m);
 
@@ -47,12 +50,28 @@ public:
     static void     enable_blending(void);
     static void     enable_additive_blending(void);
     static void     disable_blending(void);
+    static void     show_hud(bool b);
 
     static const PerfCounters& get_performance_count(void);
 
 private:
     struct Impl;
     static std::unique_ptr<Impl> mImpl;
+};
+
+struct SurfaceTriangles {
+    SurfaceTriangles(void);
+    SurfaceTriangles(const uint32_t nv, const uint32_t nidx);
+    ~SurfaceTriangles(void);
+    uint32_t GetSize(void) const;
+    uint32_t nVertices;
+    glm::vec3 *vertices;
+    RGBAPixel *colors;
+    TexCoord *texture_coordinates;
+    PackedNormal *normals;
+
+    uint32_t nIndices;
+    uint32_t *indices;
 };
 
 // Per-frame performance stats
