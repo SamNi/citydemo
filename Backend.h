@@ -17,14 +17,25 @@
 // do I really want to double buf anything?
 //      and if so, what?
 
+// typedefs
 typedef glm::u8vec3 RGBPixel;
 typedef glm::u8vec4 RGBAPixel;
 typedef glm::u16vec2 TexCoord;
 typedef uint32_t PackedNormal;
 
+// forward decls
+struct Framebuffer;
+struct Image;
 struct PerfCounters;
+struct Resource;
 struct SurfaceTriangles;
+struct Texture;
+struct TextureManager;
 
+// enums
+enum ImageFormat;
+
+// primary interface: try to keep this near the top
 class Backend {
 public:
     static bool     startup(int w, int h);
@@ -57,6 +68,18 @@ public:
 private:
     struct Impl;
     static std::unique_ptr<Impl> mImpl;
+};
+
+// Framebuffer.cpp
+struct Framebuffer {
+    explicit Framebuffer(uint16_t w, uint16_t h);
+    ~Framebuffer(void);
+    void bind(void) const;
+    void blit(int w, int h) const;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
 };
 
 struct SurfaceTriangles {
@@ -100,5 +123,57 @@ struct Specs {
     std::vector<const unsigned char*> extensions;
 };
 
+// Texture.cpp
+struct TextureManager { 
+    static bool                     startup(void);
+    static void                     shutdown(void);
+    static uint32_t                 load(const char *path);
+    static void                     bind(uint32_t textureID);
+    static void                     remove(uint32_t textureID);
+private:
+    struct Impl;
+    typedef std::unique_ptr<Impl> ImplPtr;
+    static ImplPtr m_impl;
+};
+
+struct Resource {
+private:
+    uint64_t unique_id;
+};
+bool startup();
+void shutdown(void);
+
+enum ImageFormat {
+    RGB_,
+    RGBALPHA,
+    GRAYSCALE
+};
+
+struct Image {
+    int w, h;
+    uint8_t *pixels;
+    ImageFormat fmt;
+};
+
+// Image : API-independent
+// Texture : Everything needed to function with OpenGL + the associated image
+struct Texture {
+    Texture(void);
+    Texture(int w, int h);
+    Texture(const char *fname, bool filtered = true, bool mipmapped = true);
+    ~Texture(void);
+
+    void bind(void) const;
+    void Refresh(void);
+
+    uint8_t *getPixels(void) const;
+    uint32_t getTexID(void) const;
+    const char *getName(void) const;
+    size_t getSizeInBytes(void) const;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
+};
 
 #endif // ~_BACKEND_H_
