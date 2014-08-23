@@ -2,10 +2,9 @@
 #include "./essentials.h"
 #include "./LuaBindings.h"
 
-namespace Lua {
-
 typedef int(*luaFunc)(lua_State *);
-struct LuaBind { \
+
+struct LuaBind {
     const char *symbol;
     luaFunc f;
 };
@@ -26,9 +25,14 @@ static const LuaBind bindings[] = {
     { "Print", L_Print },
 };
 static const int nBindings = sizeof(bindings) / sizeof(LuaBind);
-lua_State *lState = NULL;
 
-bool startup(void) {
+lua_State* lState = nullptr;
+lua_State* Lua::get_state(void) {
+    return lState;
+}
+
+
+bool Lua::startup(void) {
     int i;
 
     if (lState) {
@@ -44,7 +48,7 @@ bool startup(void) {
     return true;
 }
 
-void shutdown(void) {
+void Lua::shutdown(void) {
     if (!lState) {
         LOG(LOG_WARNING, "Redundant Lua Shutdown()\n");
         return;
@@ -52,10 +56,10 @@ void shutdown(void) {
     lua_close(lState);
 }
 
-bool LuaExec(const char *expr) {
+bool Lua::exec(const char *expression) {
     assert(lState);
-    if (LUA_FALSE == luaL_dostring(lState, expr)) {
-        LOG(LOG_WARNING, "error lua-ing '%s'", expr);
+    if (LUA_FALSE == luaL_dostring(lState, expression)) {
+        LOG(LOG_WARNING, "error lua-ing '%s'", expression);
         return false;
     }
     return true;
@@ -72,6 +76,3 @@ int L_Print(lua_State *L) {
     lua_pop(L, nArgs);
     return 0;
 }
-
-
-}  // namespace Lua
