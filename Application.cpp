@@ -27,6 +27,7 @@ void APIENTRY debugproc(GLenum source, GLenum type, GLuint id, GLenum severity,
 Application::Application(int argc, char *argv[], const char *title) {
     // parse command-line args, set globals accordingly
     appName = argv[0];
+    argc; argv; title; // shut up
 }
 
 int Application::Run(void) {
@@ -103,16 +104,6 @@ bool Application::startup(void) {
         LOG(LOG_CRITICAL, "Frontend::Startup\n");
         return false;
     }
-    if (!Lua::startup()) {
-        LOG(LOG_CRITICAL, "Lua::Startup\n");
-        return false;
-    }
-
-    if (!Manager::startup()) {
-        LOG(LOG_CRITICAL, "Manager::Startup\n");
-        return false;
-    }
-
     return true;
 }
 bool Application::Done(void) { return static_cast<bool>(glfwWindowShouldClose(window)); }
