@@ -2,6 +2,8 @@
 
 #include "Input.h"
 
+#pragma warning (disable : 4100 )
+
 
 float movement_speed = 0.75f;
 float mouse_sensitivity = 2.75f;
