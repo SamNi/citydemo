@@ -2,6 +2,7 @@
 #include "essentials.h"
 #include "Renderer/Backend/GL.h"
 #include <physfs/physfs.h>
+#pragma warning ( disable : 4100 )
 
 // caller's responsibility to free the returned buf
 char *readFile(const char *fname) {
