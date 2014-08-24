@@ -5,7 +5,7 @@
 #include "../../LuaBindings.h"
 #include "GL.h"
 #include "Shader.h"
-#include "../../Camera.h"
+#include "../Frontend/Camera.h"
 #include <png.h>            // for writing screenshots
 #include "ResourceManager.h"
 
@@ -15,7 +15,7 @@ static const int        OFFSCREEN_WIDTH =           512;
 static const int        OFFSCREEN_HEIGHT =          512;
 static const bool       PIXELATED =                 false;
 
-#include "../../GUI.h"
+#include "../Frontend/GUI.h"
 
 using namespace GUI;
 
