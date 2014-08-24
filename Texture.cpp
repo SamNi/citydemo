@@ -9,23 +9,26 @@
 #include <physfs/physfs.h>
 #include "GL.H"
 #include "Backend.h"
-#include <cmath>
 
 struct Texture::Impl {
-    Impl(void) : m_texture_id(0), bFilter(true), bUseMipmaps(false) {
+    Impl(void) : m_texture_id(0), bFilter(true), m_use_mipmaps(false) {
         img.w = 8;
         img.h = 8;
         img.pixels = nullptr;
         MakeCheckerboard();
     }
-    Impl(int w, int h) : m_texture_id(0), bFilter(true), bUseMipmaps(false) {
+    Impl(int w, int h) : m_texture_id(0), bFilter(true), m_use_mipmaps(false) {
         assert(w && h);
         img.w = w;
         img.h = h;
         img.pixels = nullptr;
         MakeCheckerboard();
     }
-    Impl(const char *fname, bool filtered, bool mipmapped) : m_texture_id(0), bFilter(filtered), bUseMipmaps(mipmapped) {
+    Impl(const char *fname, bool filtered, bool mipmapped) : 
+        m_texture_id(0), 
+        bFilter(filtered), 
+        m_use_mipmaps(mipmapped) 
+    {
         img.w = 8;
         img.h = 8;
         img.pixels = nullptr;
@@ -113,15 +116,9 @@ struct Texture::Impl {
         return m_texture_id;
     }
     const char *get_name(void) const { return path.c_str(); } 
-    size_t get_size_in_bytes(void) const {
-        if (img.pixels)
-            return img.w*img.h*nComponents + sizeof(Texture);
-        else
-            return 0;
-    }
+    size_t get_size_in_bytes(void) const { return (img.pixels) ? img.w*img.h*nComponents + sizeof(Texture) : 0; }
     uint8_t *get_pixels(void) const { return img.pixels; }
-    inline double log2(double x) { return log(x) / log(2); }
-    inline int compute_mipmap_level(int w, int h) { return static_cast<int>(ceil(log2(glm::max(w, h)))); }
+    inline int compute_mipmap_level(int w, int h) { return static_cast<int>(ceil(glm::log2<float>(glm::max(w, h)))); }
     void upload_to_gl(void) {
         // Reinterprets RG to grayscale alpha as intended for those that need it
 
@@ -149,7 +146,7 @@ struct Texture::Impl {
             break;
         }
 
-        int nMipmaps = bUseMipmaps ? compute_mipmap_level(img.w, img.h) : 1;
+        int nMipmaps = m_use_mipmaps ? compute_mipmap_level(img.w, img.h) : 1;
         checkGL();
         glTexStorage2D(GL_TEXTURE_2D, nMipmaps, sizedFormat, img.w, img.h);
         checkGL();
@@ -160,7 +157,7 @@ struct Texture::Impl {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-        if (bUseMipmaps) {
+        if (m_use_mipmaps) {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, bFilter ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST);
             glGenerateMipmap(GL_TEXTURE_2D);
         } else {
@@ -201,7 +198,7 @@ struct Texture::Impl {
 
         this->img.fmt = ImageFormat::RGBALPHA;
         bFilter = false;
-        bUseMipmaps = false;
+        m_use_mipmaps = false;
         hot = false;
         for (j = 0; j < img.h; ++j) {
             for (i = 0; i < img.w; ++i, hot = !hot) {
@@ -227,7 +224,7 @@ struct Texture::Impl {
     uint32_t m_texture_id;
     uint32_t sizedFormat, baseFormat;
     bool bFilter;
-    bool bUseMipmaps;
+    bool m_use_mipmaps;
 
     Image img;
 };
@@ -237,11 +234,11 @@ Texture::Texture(int w, int h) { m_impl = std::unique_ptr<Impl>(new Impl(w, h));
 Texture::Texture(const char *fname, bool filtered, bool mipmapped) { m_impl = std::unique_ptr<Impl>(new Impl(fname, filtered, mipmapped)); }
 Texture::~Texture(void) { m_impl.reset(nullptr); }
 void Texture::bind(void) const { m_impl->bind(); }
-void Texture::Refresh(void) { m_impl->refresh(); }
-GLuint Texture::getTexID(void) const { return m_impl->get_texture_id(); }
-const char *Texture::getName(void) const { return m_impl->get_name(); }
-size_t Texture::getSizeInBytes(void) const { return m_impl->get_size_in_bytes(); }
-uint8_t *Texture::getPixels(void) const { return m_impl->get_pixels(); }
+void Texture::refresh(void) { m_impl->refresh(); }
+GLuint Texture::get_texture_id(void) const { return m_impl->get_texture_id(); }
+const char *Texture::get_name(void) const { return m_impl->get_name(); }
+size_t Texture::get_size_in_bytes(void) const { return m_impl->get_size_in_bytes(); }
+uint8_t *Texture::get_pixels(void) const { return m_impl->get_pixels(); }
 double log2(double x) { return log(x)/log(2); }
 
 // ----------------------------------

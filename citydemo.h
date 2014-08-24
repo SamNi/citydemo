@@ -3,7 +3,6 @@
 
 #include "GL.H"
 #include "Shader.h"
-#include "Texture.h"
 #include "ParticleSystem.h"
 #include "Backend.h"
 #include "Frontend.h"

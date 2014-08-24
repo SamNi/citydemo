@@ -54,6 +54,7 @@ void Lua::shutdown(void) {
         return;
     }
     lua_close(lState);
+    lState = nullptr;
 }
 
 bool Lua::exec(const char *expression) {

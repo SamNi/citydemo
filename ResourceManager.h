@@ -3,17 +3,24 @@
 #define _RESOURCEMANAGER_H_
 #include "essentials.h"
 
-namespace Manager {
-
-class Resource {
+struct Resource {
 public:
 private:
     uint64_t unique_id;
 };
 
+struct ResourceManager {
+    explicit ResourceManager(void);
+    ~ResourceManager(void);
+    bool startup();
+    void shutdown();
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
+};
+
 bool startup();
 void shutdown(void);
-
-}; // ~namespace
 
 #endif // ~_RESOURCEMANAGER_H_

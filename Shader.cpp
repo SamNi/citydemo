@@ -5,7 +5,7 @@
 struct ShaderProgram {
     ShaderProgram(std::string frag, std::string vertex);
     ~ShaderProgram(void);
-    void Bind(void) const;
+    void bind(void) const;
 
     GLuint programID;
     GLuint vertexShaderID;
@@ -83,7 +83,7 @@ ShaderProgram::~ShaderProgram(void) {
     }
 }
 
-void ShaderProgram::Bind(void) const {
+void ShaderProgram::bind(void) const {
     glUseProgram(programID);
 }
 // ----------------------------------
@@ -96,26 +96,27 @@ public:
 };
 std::unordered_map<std::string, std::shared_ptr<ShaderProgram>> ShaderManager::Impl::progs;
 
-uint32_t ShaderManager::Load(std::string name, std::string frag, std::string vertex) {
+int16_t ShaderManager::load(std::string name, std::string frag, std::string vertex) {
     auto p = std::shared_ptr<ShaderProgram>(new ShaderProgram(frag, vertex));
     ShaderManager::Impl::progs.emplace(name, p);
     checkGL();
     return p->programID;
 }
 
-void ShaderManager::Bind(std::string name) {
+bool ShaderManager::bind(std::string name) {
     auto it = ShaderManager::Impl::progs.find(name);
     if (it == ShaderManager::Impl::progs.end()) {
-        LOG(LOG_WARNING, "ShaderManager::Bind nonexistent id %s\n", name.c_str());
-        return;
+        LOG(LOG_WARNING, "ShaderManager::bind nonexistent id %s\n", name.c_str());
+        return false;
     }
-    it->second->Bind();
+    it->second->bind();
+    return true;
 }
 
-uint32_t ShaderManager::GetProgID(std::string name) {
+int16_t ShaderManager::get_program_id(std::string name) {
     auto it = ShaderManager::Impl::progs.find(name);
     if (it == ShaderManager::Impl::progs.end()) {
-        LOG(LOG_WARNING, "ShaderManager::GetProgID no shader with name %s\n", name.c_str());
+        LOG(LOG_WARNING, "ShaderManager::get_program_id no shader with name %s\n", name.c_str());
         return 0;
     }
     return it->second->programID;
@@ -126,7 +127,6 @@ void ShaderManager::shutdown(void) {
 }
 
 #include "./LuaBindings.h"
-namespace Lua {
 
 int L_LoadShader(lua_State *L) {
     if (lua_gettop(L) != 3)
@@ -134,7 +134,7 @@ int L_LoadShader(lua_State *L) {
     auto name = lua_tostring(L, 1);
     auto frag = lua_tostring(L, 2);
     auto vert = lua_tostring(L, 3);
-    ShaderManager::Load(name, frag, vert);
+    ShaderManager::load(name, frag, vert);
     checkGL();
     return 0;
 }
@@ -143,9 +143,7 @@ int L_BindShader(lua_State *L) {
     if (lua_gettop(L) != 1)
         luaL_error(L, "Usage: BindShader(textureID)");
     auto textureID = lua_tostring(L,1);
-    ShaderManager::Bind(textureID);
+    ShaderManager::bind(textureID);
     checkGL();
     return 0;
 }
-
-}  // Lua

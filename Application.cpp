@@ -1,7 +1,7 @@
 #include "./citydemo.h"
 #include "./LuaBindings.h"
 #include "Frontend.h"
-#include "./Input.h"
+#include "Input.h"
 
 int screen_width =              1600;
 int screen_height =             900;

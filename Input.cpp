@@ -27,8 +27,8 @@ struct Input::Impl {
         glfwSetCursorEnterCallback(window, cb_cursor_enter);
         glfwSetMouseButtonCallback(window, cb_mouse_button);
         glfwSetScrollCallback(window, cb_scroll);
-        //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
     void shutdown(void) {
         window = nullptr;
@@ -44,7 +44,7 @@ struct Input::Impl {
 // TODO(SamNi): need to cut the dependence on Frontend and Backend::
 // The Application module should be calling these.
 #include "Frontend.h"
-#include "Backend.h"
+//#include "Backend.h"
 
 // GLFW callbacks
 static void cb_key(GLFWwindow *window, int key, int scancode,
@@ -54,7 +54,7 @@ static void cb_key(GLFWwindow *window, int key, int scancode,
 
     switch (key) {
     case GLFW_KEY_F12:
-        Backend::write_screenshot();
+        Frontend::write_screenshot();
         break;
     case GLFW_KEY_W:
         Frontend::strafe(-movement_speed*glm::vec3(0.0f, 0.0f,-1.0f));

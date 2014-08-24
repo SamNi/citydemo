@@ -4,18 +4,28 @@
 #include "LuaBindings.h"
 #include "Backend.h"
 #include <physfs/physfs.h>
-
-namespace Manager {
-
-
+#include <lua/lua.hpp>
 
 static const char *defaultSearchPaths[] = {
     "data.zip",
     "data",
 };
 
+struct ResourceManager::Impl {
+    bool startup(void) {
+    }
+    void shutdown(void) {
+    }
+};
+ResourceManager::ResourceManager(void) {
+    m_impl = std::unique_ptr<Impl>(new Impl());
 
-bool startup() {
+}
+ResourceManager::~ResourceManager(void) {
+    m_impl.reset(nullptr);
+}
+
+bool ResourceManager::startup(void) {
     int i;
     if (!PHYSFS_init("default")) {
         LOG(LOG_CRITICAL, "PHYSFS_init failed");
@@ -39,8 +49,8 @@ bool startup() {
     buf = new char[fileLen+1];
     PHYSFS_read(fin, buf, 1, fileLen);
     buf[fileLen] = '\0';
-    if (false == Lua::LuaExec(buf)) {
-        LOG(LOG_CRITICAL, "%s\n", Lua::lua_tostring(Lua::lState,-1));
+    if (false == Lua::exec(buf)) {
+        LOG(LOG_CRITICAL, "%s\n", lua_tostring(Lua::get_state(),-1));
         delete[] buf;
         return false;
     }
@@ -49,8 +59,14 @@ bool startup() {
     return true;
 }
 
-void shutdown(void) {
+void ResourceManager::shutdown(void) {
     PHYSFS_deinit();
 }
 
-} // ~namespace
+bool startup() {
+    return false;
+}
+
+void shutdown(void) {
+    PHYSFS_deinit();
+}

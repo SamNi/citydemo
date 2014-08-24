@@ -45,6 +45,7 @@ public:
 
     static void     resize(int w, int h);
     static RGBPixel*     get_screenshot(void);
+    static RGBPixel*     read_screenshot(const char *path);
     static void     write_screenshot(void);
     static bool     write_screenshot(const char *fname);
     static void     add_random_tris(void);
@@ -68,18 +69,6 @@ public:
 private:
     struct Impl;
     static std::unique_ptr<Impl> mImpl;
-};
-
-// Framebuffer.cpp
-struct Framebuffer {
-    explicit Framebuffer(uint16_t w, uint16_t h);
-    ~Framebuffer(void);
-    void bind(void) const;
-    void blit(int w, int h) const;
-
-private:
-    struct Impl;
-    std::unique_ptr<Impl> m_impl;
 };
 
 struct SurfaceTriangles {
@@ -136,13 +125,6 @@ private:
     static ImplPtr m_impl;
 };
 
-struct Resource {
-private:
-    uint64_t unique_id;
-};
-bool startup();
-void shutdown(void);
-
 enum ImageFormat {
     RGB_,
     RGBALPHA,
@@ -164,12 +146,12 @@ struct Texture {
     ~Texture(void);
 
     void bind(void) const;
-    void Refresh(void);
+    void refresh(void);
 
-    uint8_t *getPixels(void) const;
-    uint32_t getTexID(void) const;
-    const char *getName(void) const;
-    size_t getSizeInBytes(void) const;
+    uint8_t *get_pixels(void) const;
+    uint32_t get_texture_id(void) const;
+    const char *get_name(void) const;
+    size_t get_size_in_bytes(void) const;
 
 private:
     struct Impl;

@@ -6,9 +6,9 @@
 
 class ShaderManager {
 public:
-    static uint32_t     Load(std::string name, std::string frag, std::string vertex);
-    static void         Bind(std::string name);
-    static uint32_t     GetProgID(std::string name);
+    static int16_t     load(std::string name, std::string frag, std::string vertex);
+    static bool        bind(std::string name);
+    static int16_t     get_program_id(std::string name);
     static void         shutdown(void);
 private:
     class Impl;

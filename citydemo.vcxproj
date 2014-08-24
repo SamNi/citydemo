@@ -158,20 +158,29 @@
     <ClCompile Include="Backend.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="essentials.cpp" />
+    <ClCompile Include="Framebuffer.cpp" />
     <ClCompile Include="Frontend.cpp" />
-    <ClCompile Include="gtest_main.cpp" />
+    <ClCompile Include="GeometryBuffer.cpp" />
+    <ClCompile Include="gtest_backend.cpp" />
+    <ClCompile Include="gtest_shadermanager.cpp" />
+    <ClCompile Include="gtest_texturemanager.cpp" />
     <ClCompile Include="GUI.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="LuaBindings.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="OpenGLBufferImmutable.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
+    <ClCompile Include="QuadVAO.cpp" />
     <ClCompile Include="ResourceManager.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="SurfaceTriangles.cpp" />
     <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="TriList.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
     <ClInclude Include="Backend.h" />
+    <ClInclude Include="Backend_local.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="citydemo.h" />
     <ClInclude Include="essentials.h" />
@@ -184,10 +193,6 @@
     <ClInclude Include="ParticleSystem.h" />
     <ClInclude Include="ResourceManager.h" />
     <ClInclude Include="Shader.h" />
-    <ClInclude Include="Texture.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
