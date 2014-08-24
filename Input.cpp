@@ -45,7 +45,7 @@ struct Input::Impl {
 
 // TODO(SamNi): need to cut the dependence on Frontend and Backend::
 // The Application module should be calling these.
-#include "Frontend.h"
+#include "Renderer/Frontend/Frontend.h"
 //#include "Backend.h"
 
 // GLFW callbacks

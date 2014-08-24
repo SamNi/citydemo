@@ -155,44 +155,44 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
-    <ClCompile Include="Backend.cpp" />
-    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="essentials.cpp" />
-    <ClCompile Include="Framebuffer.cpp" />
-    <ClCompile Include="Frontend.cpp" />
-    <ClCompile Include="GeometryBuffer.cpp" />
     <ClCompile Include="gtest_backend.cpp" />
     <ClCompile Include="gtest_shadermanager.cpp" />
     <ClCompile Include="gtest_texturemanager.cpp" />
-    <ClCompile Include="GUI.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="LuaBindings.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="OpenGLBufferImmutable.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
-    <ClCompile Include="QuadVAO.cpp" />
-    <ClCompile Include="ResourceManager.cpp" />
-    <ClCompile Include="Shader.cpp" />
-    <ClCompile Include="SurfaceTriangles.cpp" />
-    <ClCompile Include="Texture.cpp" />
-    <ClCompile Include="TriList.cpp" />
+    <ClCompile Include="Renderer\Backend\Backend.cpp" />
+    <ClCompile Include="Renderer\Backend\Framebuffer.cpp" />
+    <ClCompile Include="Renderer\Backend\GeometryBuffer.cpp" />
+    <ClCompile Include="Renderer\Backend\OpenGLBufferImmutable.cpp" />
+    <ClCompile Include="Renderer\Backend\QuadVAO.cpp" />
+    <ClCompile Include="Renderer\Backend\ResourceManager.cpp" />
+    <ClCompile Include="Renderer\Backend\Shader.cpp" />
+    <ClCompile Include="Renderer\Backend\SurfaceTriangles.cpp" />
+    <ClCompile Include="Renderer\Backend\Texture.cpp" />
+    <ClCompile Include="Renderer\Backend\TriList.cpp" />
+    <ClCompile Include="Renderer\Frontend\Camera.cpp" />
+    <ClCompile Include="Renderer\Frontend\Frontend.cpp" />
+    <ClCompile Include="Renderer\Frontend\GUI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
-    <ClInclude Include="Backend.h" />
-    <ClInclude Include="Backend_local.h" />
-    <ClInclude Include="Camera.h" />
     <ClInclude Include="citydemo.h" />
     <ClInclude Include="essentials.h" />
-    <ClInclude Include="Frontend.h" />
-    <ClInclude Include="GL.h" />
     <ClInclude Include="GLM.h" />
-    <ClInclude Include="GUI.h" />
     <ClInclude Include="Input.h" />
     <ClInclude Include="LuaBindings.h" />
     <ClInclude Include="ParticleSystem.h" />
-    <ClInclude Include="ResourceManager.h" />
-    <ClInclude Include="Shader.h" />
+    <ClInclude Include="Renderer\Backend\Backend.h" />
+    <ClInclude Include="Renderer\Backend\Backend_local.h" />
+    <ClInclude Include="Renderer\Backend\GL.h" />
+    <ClInclude Include="Renderer\Backend\ResourceManager.h" />
+    <ClInclude Include="Renderer\Backend\Shader.h" />
+    <ClInclude Include="Renderer\Frontend\Camera.h" />
+    <ClInclude Include="Renderer\Frontend\Frontend.h" />
+    <ClInclude Include="Renderer\Frontend\GUI.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
