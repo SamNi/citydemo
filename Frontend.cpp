@@ -1,12 +1,12 @@
 #include "./Frontend.h"
-#include "./Backend.h"
+#include "Renderer/Backend/Backend.h"
 // idea: Visibility deltas. Both the front end and back end are stateful
 // only have relevant changes propagate from frontend to backend.
 #include <unordered_set>
 #include "essentials.h"
 #include "./Frontend.h"
-#include "GL.h"
 #include "Camera.h"
+#include <glfw/glfw3.h>
 
 std::unique_ptr<Frontend::Impl> Frontend::mImpl = nullptr;
 

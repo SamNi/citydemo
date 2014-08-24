@@ -1,6 +1,6 @@
 // Copyright [year] <Copyright Owner>
 #include "essentials.h"
-#include "GL.h"
+#include "Renderer/Backend/GL.h"
 #include <physfs/physfs.h>
 
 // caller's responsibility to free the returned buf
