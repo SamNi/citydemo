@@ -1,5 +1,5 @@
 #ifdef _TEST_BUILD
-#include "Backend.h"
+#include "../Renderer/Backend/Backend.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <gtest/gtest.h>
@@ -25,6 +25,8 @@ struct backend_fixture : public ::testing::Test {
         glfwMakeContextCurrent(window);
         ASSERT_EQ(GLEW_OK, glewInit());
         Backend::startup(TEST_WIDTH, TEST_HEIGHT);
+
+        Backend::show_hud(false);
     }
     virtual void TearDown() {
         Backend::shutdown();
@@ -68,6 +70,39 @@ TEST_F(backend_fixture, empty_scene_triangle_count) {
     Backend::end_frame();
     ASSERT_EQ(0, Backend::get_performance_count().n_triangles_drawn);
 }
+
+TEST_F(backend_fixture, single_front_facing_triangle) {
+    Backend::set_clear_color(COLOR_ALPHA[DARK_GRAY]);
+    Backend::begin_frame();
+    Backend::end_frame();
+    auto st = std::shared_ptr<SurfaceTriangles>(new SurfaceTriangles(3, 3));
+    st->vertices[0] = glm::vec3(-1.0f, -1.0f, 0.0f);
+    st->vertices[1] = glm::vec3(+1.0f, -1.0f, 0.0f);
+    st->vertices[2] = glm::vec3(+1.0f, +1.0f, 0.0f);
+    st->indices[0] = 0;
+    st->indices[1] = 1;
+    st->indices[2] = 2;
+    st->colors[0] = COLOR_ALPHA[RED];
+    st->colors[1] = COLOR_ALPHA[GREEN];
+    st->colors[2] = COLOR_ALPHA[BLUE];
+    st->texture_coordinates[0] = TexCoord(0, 0);
+    st->texture_coordinates[1] = TexCoord(65535, 0);
+    st->texture_coordinates[2] = TexCoord(65535, 65535);
+    auto handle = Backend::add_surface_triangles(st);
+    Backend::disable_depth_testing();
+    Backend::begin_frame();
+    Backend::draw_surface_triangles(handle);
+    Backend::end_frame();
+    Backend::write_screenshot("single_front_facing_triangle_actual_result.png");
+}
+
+TEST_F(backend_fixture, framebuffer_basic) {
+    Backend::set_clear_color(COLOR_ALPHA[DARK_RED]);
+    Backend::begin_frame();
+    Backend::end_frame();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    Backend::write_screenshot("framebuffer_basic_actual_result.png");
+};
 
 // misc helpers
 // trying to ensure the highest precision possible
