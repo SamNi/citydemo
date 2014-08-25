@@ -11,75 +11,13 @@
 
 #pragma warning(disable : 4800)
 
-static const int        OFFSCREEN_WIDTH =           128;
-static const int        OFFSCREEN_HEIGHT =          32;
+static const int        OFFSCREEN_WIDTH =           512;
+static const int        OFFSCREEN_HEIGHT =          512;
 static const bool       PIXELATED =                 true;
 
 #include "../Frontend/GUI.h"
 
 using namespace GUI;
-
-struct MyWidget : public Widget {
-    explicit MyWidget(void) { }
-    virtual void draw(void) const {
-        glDrawArraysInstanced(GL_TRIANGLE_FAN, 0, 4, 15);
-    }
-};
-
-struct MyWidgetManager : public WidgetManager {
-    explicit MyWidgetManager(void) {
-    }
-protected:
-    struct WidgetUBO {
-        static const uint32_t MAX_NUM_MVP = 1024;
-        static const uint32_t MVP_SIZE = sizeof(glm::mat4x4);
-        static const uint32_t BUF_SIZE = MAX_NUM_MVP*MVP_SIZE;
-
-        explicit WidgetUBO(void) {
-            m_ubo = ImmutableBufPtr(new OpenGLBufferImmutable(GL_UNIFORM_BUFFER, GL_MAP_WRITE_BIT | GL_DYNAMIC_STORAGE_BIT, BUF_SIZE));
-            m_ubo->bind();
-
-            // Assign said UBO to uniform
-            GLint prog_handle;
-            glGetIntegerv(GL_CURRENT_PROGRAM, &prog_handle);
-
-            auto block_index = glGetUniformBlockIndex(prog_handle, "per_instance_mvp");
-            if (block_index == GL_INVALID_INDEX) {
-                LOG(LOG_CRITICAL, "block_index == GL_INVALID_INDEX");
-                return;
-            }
-            glUniformBlockBinding(prog_handle, block_index, 0);
-            glBindBufferBase(GL_UNIFORM_BUFFER, block_index, m_ubo->get_handle());
-
-            for (uint16_t i = 0;i < MAX_NUM_MVP;++i) {
-                glm::mat4x4 mvp(1.0f);
-                mvp *= glm::translate(glm::vec3(uniform(-1.0f, 1.0f), uniform(-1.0f, 1.0f), 0.0f));
-                mvp *= glm::scale(glm::vec3(uniform(0.05f, 0.35f)));
-                mvp *= glm::rotate((float)glm::radians(uniform(-180.0f,180.0f)), glm::vec3(0.0f, 0.0f, 1.0f));
-                mvp *= glm::ortho(-1.77777f, 1.77777f, -1.0f, 1.0f);
-                set_mvp(i, mvp);
-            }
-            glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-            LOG(LOG_TRACE, "WidgetUBO opened");
-            LOG(LOG_TRACE, "Allocated space for %u 4x4 MVPs (%u kB)", MAX_NUM_MVP, BUF_SIZE >> 10);
-        }
-        void set_mvp(uint16_t index, const glm::mat4x4& mat) {
-            assert(index < MAX_NUM_MVP);
-            glBindBuffer(GL_UNIFORM_BUFFER, m_ubo->get_handle());
-            auto p = glMapBufferRange(GL_UNIFORM_BUFFER, index*MVP_SIZE, MVP_SIZE, GL_MAP_WRITE_BIT);
-            memcpy(p, glm::value_ptr(mat), MVP_SIZE);
-            glUnmapBuffer(GL_UNIFORM_BUFFER);
-            glBindBuffer(GL_UNIFORM_BUFFER, 0);
-        }
-
-    protected:
-        ImmutableBufPtr m_ubo;
-    };
-
-protected:
-    WidgetUBO m_widget_ubo;
-};
 
 static Framebuffer *offscreenFB = nullptr;
 
@@ -207,23 +145,8 @@ struct Backend::Impl {
         glBindVertexArray(geom_buf.get_vao());
         glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, (void*)(geom_buf.cmd_queues.get_base_offset_in_bytes()), geom_buf.cmd_queues.get_size(), 0);
         if (true == m_draw_hud) {
-            disable_depth_testing();
-
             // Draw 2D GUI elements
-            static WidgetPtr my_widget(new MyWidget());
-            static MyWidgetManager widget_manager;
-            static bool firstTime = true;
-
-            if (firstTime) {
-                widget_manager.set_root(my_widget);
-                widget_manager.set_focus(my_widget);
-            }
-            glBindVertexArray(QuadVAO::get_vao());
-            set_instanced_mode(true);
-            widget_manager.draw();
-
-            firstTime = false;
-            set_instanced_mode(false);
+            // ..
         }
         if (offscreenRender) {
             set_instanced_mode(false);
