@@ -56,6 +56,7 @@ struct Framebuffer {
     ~Framebuffer(void);
     void bind(void) const;
     void blit(int w, int h) const;
+    uint32_t get_texture_id(void) const;
 
 private:
     struct Impl;

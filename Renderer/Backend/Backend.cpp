@@ -11,9 +11,9 @@
 
 #pragma warning(disable : 4800)
 
-static const int        OFFSCREEN_WIDTH =           512;
-static const int        OFFSCREEN_HEIGHT =          512;
-static const bool       PIXELATED =                 false;
+static const int        OFFSCREEN_WIDTH =           128;
+static const int        OFFSCREEN_HEIGHT =          32;
+static const bool       PIXELATED =                 true;
 
 #include "../Frontend/GUI.h"
 
@@ -225,8 +225,10 @@ struct Backend::Impl {
             firstTime = false;
             set_instanced_mode(false);
         }
-        if (offscreenRender)
+        if (offscreenRender) {
+            set_instanced_mode(false);
             offscreenFB->blit(current_screen_width, current_screen_height);
+        }
         geom_buf.cmd_queues.Swap();
     }
     void resize(int w, int h) {

@@ -1,9 +1,7 @@
 #include "Backend_local.h"
 
 struct Framebuffer::Impl {
-    explicit Impl(uint16_t w, uint16_t h) {
-        width = w;
-        height = h;
+    explicit Impl(uint16_t w, uint16_t h) : width(w), height(h) {
         // TODO(SamNi): I know this is suboptimal.
         glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTextureID);
 
@@ -40,12 +38,13 @@ struct Framebuffer::Impl {
 
         // switch to the visible render buffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDisable(GL_DEPTH_TEST);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glBindTexture(GL_TEXTURE_2D, textureID);
+        glBindTexture(GL_TEXTURE_2D, textureID); // the texture we just drew to is now the source
         glViewport(0, 0, w, h);
         Backend::set_modelview(identity_matrix);
         Backend::set_projection(identity_matrix);
+        glBindVertexArray(QuadVAO::get_vao());
+        Backend::disable_depth_testing();
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     }
     uint32_t          framebufferID;
     uint32_t          textureID;
@@ -65,3 +64,4 @@ void Framebuffer::bind(void) const {
 void Framebuffer::blit(int w, int h) const {
     m_impl->blit(w, h);
 }
+uint32_t Framebuffer::get_texture_id(void) const { return m_impl->textureID; }
