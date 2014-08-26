@@ -13,7 +13,7 @@
 
 static const int        OFFSCREEN_WIDTH =           512;
 static const int        OFFSCREEN_HEIGHT =          512;
-static const bool       PIXELATED =                 true;
+static const bool       PIXELATED =                 false;
 
 #include "../Frontend/GUI.h"
 
@@ -56,7 +56,6 @@ struct Backend::Impl {
 
     }
     GeometryBuffer geom_buf;
-
     bool startup(int w, int h) {
         if (false == Lua::startup())
             return false;
@@ -69,6 +68,10 @@ struct Backend::Impl {
         current_screen_height = h;
         m_draw_hud = true;
         offscreenRender = PIXELATED;
+
+        auto identity_matrix = glm::mat4(1.0f);
+        set_modelview(identity_matrix);
+        set_projection(identity_matrix);
 
         clear_performance_counters();
         query_hardware_specs();
@@ -171,6 +174,7 @@ struct Backend::Impl {
         uint8_t* ret = nullptr;
 
 	    memset(&image, 0, sizeof(image));
+        image.version = PNG_IMAGE_VERSION;
 	    if (!png_image_begin_read_from_file(&image, fname))
 		    return nullptr;
 	    ret = new uint8_t[PNG_IMAGE_SIZE(image)];
