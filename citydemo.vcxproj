@@ -158,11 +158,18 @@
     <ClCompile Include="essentials.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="LuaBindings.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="main.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GTest|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Renderer\Backend\Backend.cpp" />
     <ClCompile Include="Renderer\Backend\Framebuffer.cpp" />
+    <ClCompile Include="Renderer\Backend\GBuffer.cpp" />
     <ClCompile Include="Renderer\Backend\GeometryBuffer.cpp" />
+    <ClCompile Include="Renderer\Backend\gtest_gbuffer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GTest|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Renderer\Backend\OpenGLBufferImmutable.cpp" />
     <ClCompile Include="Renderer\Backend\QuadVAO.cpp" />
     <ClCompile Include="Renderer\Backend\ResourceManager.cpp" />
@@ -173,9 +180,23 @@
     <ClCompile Include="Renderer\Frontend\Camera.cpp" />
     <ClCompile Include="Renderer\Frontend\Frontend.cpp" />
     <ClCompile Include="Renderer\Frontend\GUI.cpp" />
-    <ClCompile Include="tests\gtest_backend.cpp" />
-    <ClCompile Include="tests\gtest_shadermanager.cpp" />
-    <ClCompile Include="tests\gtest_texturemanager.cpp" />
+    <ClCompile Include="tests\gtest_backend.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GTest|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="tests\gtest_framebuffer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GTest|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="tests\gtest_shadermanager.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GTest|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="tests\gtest_texture.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GTest|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="tests\gtest_utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
@@ -193,6 +214,10 @@
     <ClInclude Include="Renderer\Frontend\Camera.h" />
     <ClInclude Include="Renderer\Frontend\Frontend.h" />
     <ClInclude Include="Renderer\Frontend\GUI.h" />
+    <ClInclude Include="tests\gtest_utils.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClInclude>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

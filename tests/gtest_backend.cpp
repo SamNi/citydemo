@@ -1,4 +1,3 @@
-#ifdef _TEST_BUILD
 #include "../Renderer/Backend/Backend.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -96,14 +95,6 @@ TEST_F(backend_fixture, single_front_facing_triangle) {
     Backend::write_screenshot("single_front_facing_triangle_actual_result.png");
 }
 
-TEST_F(backend_fixture, framebuffer_basic) {
-    Backend::set_clear_color(COLOR_ALPHA[DARK_RED]);
-    Backend::begin_frame();
-    Backend::end_frame();
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    Backend::write_screenshot("framebuffer_basic_actual_result.png");
-};
-
 // misc helpers
 // trying to ensure the highest precision possible
 inline double _my_max(double lhs, double rhs) { return (lhs > rhs) ? lhs: rhs; }
@@ -166,5 +157,3 @@ bool image_match(RGBPixel* lhs, RGBPixel* rhs) {
     LOG(LOG_INFORMATION, "%d bad pixels and %lf percent error", num_bad_pixels, total_err/NUM_PIXELS);
     return broken_threshold;
 }
-
-#endif  // ~_TEST_BUILD

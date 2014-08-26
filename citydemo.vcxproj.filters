@@ -67,12 +67,6 @@
     <ClCompile Include="Renderer\Backend\ResourceManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Renderer\Frontend\Camera.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\Frontend\Frontend.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Renderer\Frontend\GUI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -82,7 +76,25 @@
     <ClCompile Include="tests\gtest_shadermanager.cpp">
       <Filter>Unit Tests</Filter>
     </ClCompile>
-    <ClCompile Include="tests\gtest_texturemanager.cpp">
+    <ClCompile Include="tests\gtest_framebuffer.cpp">
+      <Filter>Unit Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\Frontend\Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\Frontend\Frontend.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\Backend\GBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer\Backend\gtest_gbuffer.cpp">
+      <Filter>Unit Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="tests\gtest_texture.cpp">
+      <Filter>Unit Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="tests\gtest_utils.cpp">
       <Filter>Unit Tests</Filter>
     </ClCompile>
   </ItemGroup>
@@ -131,6 +143,9 @@
     </ClInclude>
     <ClInclude Include="Renderer\Backend\Backend_local.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tests\gtest_utils.h">
+      <Filter>Unit Tests</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
