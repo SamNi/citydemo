@@ -166,10 +166,6 @@
     <ClCompile Include="Renderer\Backend\Framebuffer.cpp" />
     <ClCompile Include="Renderer\Backend\GBuffer.cpp" />
     <ClCompile Include="Renderer\Backend\GeometryBuffer.cpp" />
-    <ClCompile Include="Renderer\Backend\gtest_gbuffer.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GTest|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="Renderer\Backend\OpenGLBufferImmutable.cpp" />
     <ClCompile Include="Renderer\Backend\QuadVAO.cpp" />
     <ClCompile Include="Renderer\Backend\ResourceManager.cpp" />
@@ -182,15 +178,16 @@
     <ClCompile Include="Renderer\Frontend\GUI.cpp" />
     <ClCompile Include="tests\gtest_backend.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GTest|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GTest|Win32'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="tests\gtest_framebuffer.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GTest|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GTest|Win32'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="tests\gtest_gbuffer.cpp" />
     <ClCompile Include="tests\gtest_shadermanager.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GTest|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GTest|Win32'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="tests\gtest_texture.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>

@@ -88,13 +88,13 @@
     <ClCompile Include="Renderer\Backend\GBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Renderer\Backend\gtest_gbuffer.cpp">
-      <Filter>Unit Tests</Filter>
-    </ClCompile>
     <ClCompile Include="tests\gtest_texture.cpp">
       <Filter>Unit Tests</Filter>
     </ClCompile>
     <ClCompile Include="tests\gtest_utils.cpp">
+      <Filter>Unit Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="tests\gtest_gbuffer.cpp">
       <Filter>Unit Tests</Filter>
     </ClCompile>
   </ItemGroup>
