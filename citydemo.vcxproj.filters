@@ -97,6 +97,12 @@
     <ClCompile Include="tests\gtest_gbuffer.cpp">
       <Filter>Unit Tests</Filter>
     </ClCompile>
+    <ClCompile Include="tests\gtest_state_machine.cpp">
+      <Filter>Unit Tests</Filter>
+    </ClCompile>
+    <ClCompile Include="state_machine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="essentials.h">
@@ -146,6 +152,9 @@
     </ClInclude>
     <ClInclude Include="tests\gtest_utils.h">
       <Filter>Unit Tests</Filter>
+    </ClInclude>
+    <ClInclude Include="state_machine.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
