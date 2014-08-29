@@ -93,6 +93,7 @@ void APIENTRY debugproc(GLenum source, GLenum type, GLuint id, GLenum severity,
     switch (source) {
     case GL_DEBUG_SOURCE_API:
         srcMsg = "API";
+        break;
     case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
         srcMsg = "Window System";
         break;
