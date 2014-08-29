@@ -64,39 +64,6 @@ private:
     static ImplPtr m_impl;
 };
 
-enum ImageFormat {
-    RGB_,
-    RGBALPHA,
-    GRAYSCALE
-};
-
-struct Image {
-    int w, h;
-    uint8_t *pixels;
-    ImageFormat fmt;
-};
-
-// Image : API-independent
-// Texture : Everything needed to function with OpenGL + the associated image
-struct Texture {
-    Texture(void);
-    Texture(int w, int h);
-    Texture(const char *fname, bool filtered = true, bool mipmapped = true);
-    ~Texture(void);
-
-    void bind(void) const;
-    void refresh(void);
-
-    uint8_t *get_pixels(void) const;
-    uint32_t get_texture_id(void) const;
-    const char *get_name(void) const;
-    size_t get_size_in_bytes(void) const;
-
-private:
-    struct Impl;
-    std::unique_ptr<Impl> m_impl;
-};
-
 // Framebuffer.cpp
 struct Framebuffer {
     explicit Framebuffer(uint16_t w, uint16_t h);
@@ -109,7 +76,17 @@ private:
     struct Impl;
     std::unique_ptr<Impl> m_impl;
 };
-
+#if 0
+struct FramebufferManager {
+    explicit FramebufferManager(void);
+    ~FramebufferManager(void);
+    void bind(void) const;
+    void 
+private:
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
+};
+#endif
 struct DrawElementsIndirectCommand {
     unsigned int idxCount, instanceCount, firstIndex, baseVertex, baseInstance;
 };

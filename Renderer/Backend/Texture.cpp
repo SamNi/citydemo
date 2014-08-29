@@ -4,6 +4,41 @@
 #include "GL.H"
 #include "Backend_local.h"
 
+enum ImageFormat {
+    RGB_,
+    RGBALPHA,
+    GRAYSCALE
+};
+
+struct Image {
+    int w, h;
+    uint8_t *pixels;
+    ImageFormat fmt;
+};
+
+
+// Image : API-independent
+// Texture : Everything needed to function with OpenGL + the associated image
+struct Texture {
+    Texture(void);
+    Texture(int w, int h);
+    Texture(const char *fname, bool filtered = true, bool mipmapped = true);
+    ~Texture(void);
+
+    void bind(void) const;
+    void refresh(void);
+
+    uint8_t *get_pixels(void) const;
+    uint32_t get_texture_id(void) const;
+    const char *get_name(void) const;
+    size_t get_size_in_bytes(void) const;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
+};
+
+
 struct Texture::Impl {
     Impl(void) : m_texture_id(0), bFilter(true), m_use_mipmaps(false), m_reupload(false) {
         img.w = 8;
