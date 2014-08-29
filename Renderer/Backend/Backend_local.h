@@ -34,6 +34,7 @@ typedef std::unique_ptr<OpenGLBufferImmutable> ImmutableBufPtr;
 struct QuadVAO {
     static GLuint get_vao(void);
     static void reset(void);
+    static void draw(void);
 
 private:
     // please don't instantiate me
@@ -48,6 +49,52 @@ private:
     static ImmutableBufPtr m_color_buffer;
     static ImmutableBufPtr m_texcoord_buffer;
     static ImmutableBufPtr m_normal_buffer;
+};
+
+// Texture.cpp
+struct TextureManager {
+    static bool                     startup(void);
+    static void                     shutdown(void);
+    static uint32_t                 load(const char *path);
+    static void                     bind(uint32_t textureID);
+    static void                     remove(uint32_t textureID);
+private:
+    struct Impl;
+    typedef std::unique_ptr<Impl> ImplPtr;
+    static ImplPtr m_impl;
+};
+
+enum ImageFormat {
+    RGB_,
+    RGBALPHA,
+    GRAYSCALE
+};
+
+struct Image {
+    int w, h;
+    uint8_t *pixels;
+    ImageFormat fmt;
+};
+
+// Image : API-independent
+// Texture : Everything needed to function with OpenGL + the associated image
+struct Texture {
+    Texture(void);
+    Texture(int w, int h);
+    Texture(const char *fname, bool filtered = true, bool mipmapped = true);
+    ~Texture(void);
+
+    void bind(void) const;
+    void refresh(void);
+
+    uint8_t *get_pixels(void) const;
+    uint32_t get_texture_id(void) const;
+    const char *get_name(void) const;
+    size_t get_size_in_bytes(void) const;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
 };
 
 // Framebuffer.cpp
@@ -166,6 +213,17 @@ private:
     DrawElementsIndirectCommand *cmdBuf;
     uint32_t current_index;
     bool mIsGeometryBufferOpen;
+};
+
+// GBuffer.cpp
+struct GBuffer {
+    explicit GBuffer(uint16_t w, uint16_t h);
+    ~GBuffer(void);
+    void bind(void);
+private:
+    struct Impl;
+    typedef std::unique_ptr<Impl> ImplPtr;
+    ImplPtr m_impl;
 };
 
 #endif  // ~_BACKEND_LOCAL_H

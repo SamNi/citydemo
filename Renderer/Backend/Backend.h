@@ -50,11 +50,15 @@ public:
     static bool     write_screenshot(const char *fname);
     static void     add_random_tris(void);
 
+    static void     draw_fullscreen_quad(void);
     static uint32_t add_surface_triangles(std::shared_ptr<SurfaceTriangles> st);
     static void     draw_surface_triangles(uint32_t handle);
     static void     set_modelview(const glm::mat4x4& m);
     static void     set_projection(const glm::mat4x4& m);
 
+
+    // Misc. device state
+    static void     bind_texture(uint32_t texture_handle);
     static void     set_clear_color(const RGBPixel& color);
     static void     set_clear_color(const RGBAPixel& color);
     static void     enable_depth_testing(void);
@@ -63,6 +67,9 @@ public:
     static void     enable_additive_blending(void);
     static void     disable_blending(void);
     static void     show_hud(bool b);
+
+    // Resource management
+    static uint32_t load_texture(const char *path);
 
     static const PerfCounters& get_performance_count(void);
 
@@ -110,52 +117,6 @@ struct Specs {
     const unsigned char*  vendor;
     const unsigned char*  version;
     std::vector<const unsigned char*> extensions;
-};
-
-// Texture.cpp
-struct TextureManager { 
-    static bool                     startup(void);
-    static void                     shutdown(void);
-    static uint32_t                 load(const char *path);
-    static void                     bind(uint32_t textureID);
-    static void                     remove(uint32_t textureID);
-private:
-    struct Impl;
-    typedef std::unique_ptr<Impl> ImplPtr;
-    static ImplPtr m_impl;
-};
-
-enum ImageFormat {
-    RGB_,
-    RGBALPHA,
-    GRAYSCALE
-};
-
-struct Image {
-    int w, h;
-    uint8_t *pixels;
-    ImageFormat fmt;
-};
-
-// Image : API-independent
-// Texture : Everything needed to function with OpenGL + the associated image
-struct Texture {
-    Texture(void);
-    Texture(int w, int h);
-    Texture(const char *fname, bool filtered = true, bool mipmapped = true);
-    ~Texture(void);
-
-    void bind(void) const;
-    void refresh(void);
-
-    uint8_t *get_pixels(void) const;
-    uint32_t get_texture_id(void) const;
-    const char *get_name(void) const;
-    size_t get_size_in_bytes(void) const;
-
-private:
-    struct Impl;
-    std::unique_ptr<Impl> m_impl;
 };
 
 #endif // ~_BACKEND_H_

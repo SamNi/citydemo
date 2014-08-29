@@ -21,6 +21,11 @@ void QuadVAO::reset(void) {
     m_vao_handle = 0;
 }
 
+void QuadVAO::draw(void) {
+    glBindVertexArray(get_vao());
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+}
+
 // please don't instantiate me
 QuadVAO::QuadVAO(void) { }
 QuadVAO::~QuadVAO(void) { }

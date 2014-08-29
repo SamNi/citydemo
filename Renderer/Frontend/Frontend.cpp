@@ -1,10 +1,9 @@
-#include "./Frontend.h"
+#include "Frontend.h"
 #include "../Backend/Backend.h"
 // idea: Visibility deltas. Both the front end and back end are stateful
 // only have relevant changes propagate from frontend to backend.
 #include <unordered_set>
 #include "../../essentials.h"
-#include "Camera.h"
 #include <glfw/glfw3.h>
 
 std::unique_ptr<Frontend::Impl> Frontend::mImpl = nullptr;
@@ -15,10 +14,7 @@ struct Frontend::Impl {
             LOG(LOG_CRITICAL, "Backend::Startup returned false\n");
             return false;
         }
-        if (!TextureManager::startup()) {
-            LOG(LOG_CRITICAL, "TextureManager::Startup returned false\n");
-            return false;
-        }
+
         Backend::set_clear_color(COLOR[BLACK]);
         modes = glfwGetVideoModes(glfwGetPrimaryMonitor(), &m_num_videomodes);
         for (int i = 0;i < m_num_videomodes;++i) {

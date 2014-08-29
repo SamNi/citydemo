@@ -76,6 +76,11 @@ struct Backend::Impl {
         clear_performance_counters();
         query_hardware_specs();
 
+        if (!TextureManager::startup()) {
+            LOG(LOG_CRITICAL, "TextureManager::Startup returned false\n");
+            return false;
+        }
+
         return true;
     }
     void shutdown(void) {
@@ -125,6 +130,9 @@ struct Backend::Impl {
         loc = mImpl->geom_buf.add_surface(st);
         mImpl->geom_buf.close_geometry_buffer();
 
+    }
+    void draw_fullscreen_quad(void) {
+        QuadVAO::draw();
     }
     uint32_t add_surface_triangles(std::shared_ptr<SurfaceTriangles> st) {
         geom_buf.open_geometry_buffer();
@@ -221,6 +229,7 @@ struct Backend::Impl {
 
     void disable_blending(void) { glDisable(GL_BLEND); }
     void show_hud(bool b) { m_draw_hud = b; }
+    uint32_t load_texture(const char *path) { return TextureManager::load(path); }
 
     void enable_additive_blending(void) {
         glEnable(GL_BLEND);
@@ -231,6 +240,7 @@ struct Backend::Impl {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 
+    void bind_texture(uint32_t texture_handle) { TextureManager::bind(texture_handle); }
     void set_clear_color(const RGBPixel& c) const { glClearColor(c.r/255.0f, c.g/255.0f, c.b/255.0f, 1.0f); }
     void set_clear_color(const RGBAPixel& c) const { glClearColor(c.r/255.0f, c.g/255.0f, c.b/255.0f, c.a/1.0f); }
     void enable_depth_testing(void) { glEnable(GL_DEPTH_TEST); }
@@ -295,10 +305,12 @@ RGBPixel* Backend::read_screenshot(const char *path) { return mImpl->read_screen
 void Backend::write_screenshot(void) { mImpl->write_screenshot(); }
 bool Backend::write_screenshot(const char *filename) { return mImpl->write_screenshot(filename); }
 void Backend::add_random_tris(void) { mImpl->add_random_tris(); }
+void Backend::draw_fullscreen_quad(void) { mImpl->draw_fullscreen_quad();  }
 uint32_t Backend::add_surface_triangles(std::shared_ptr<SurfaceTriangles> st) { return mImpl->add_surface_triangles(st); }
 void Backend::draw_surface_triangles(uint32_t handle) { mImpl->draw_surface_triangles(handle); }
 void Backend::set_modelview(const glm::mat4x4& m) { mImpl->set_modelview(m); }
 void Backend::set_projection(const glm::mat4x4& m) { mImpl->set_projection(m); }
+void Backend::bind_texture(uint32_t texture_handle) { mImpl->bind_texture(texture_handle); }
 void Backend::set_clear_color(const RGBPixel& c) { mImpl->set_clear_color(c); }
 void Backend::set_clear_color(const RGBAPixel& c) { mImpl->set_clear_color(c); }
 void Backend::enable_depth_testing(void) { mImpl->enable_depth_testing(); }
@@ -307,4 +319,5 @@ void Backend::enable_blending(void) { mImpl->enable_blending(); }
 void Backend::enable_additive_blending(void) { mImpl->enable_additive_blending(); }
 void Backend::disable_blending(void) { mImpl->disable_blending(); }
 void Backend::show_hud(bool b) { mImpl->show_hud(b); }
+uint32_t Backend::load_texture(const char *path) { return mImpl->load_texture(path); }
 const PerfCounters& Backend::get_performance_count(void) { return mImpl->get_performance_count(); }

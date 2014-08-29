@@ -1,23 +1,17 @@
-// Copyright [year] <Copyright Owner>
-// TODO(SamNi):
-// - 8-bit pngs are paletted and require special consideration.
-// The intent is to ignore the palette entirely and treat it as grayscale
-//
-// - I get an invalid enumerant when I try to do compressed textures. fix that
 #include <zlib.h>
 #include <png.h>
 #include <physfs/physfs.h>
 #include "GL.H"
-#include "Backend.h"
+#include "Backend_local.h"
 
 struct Texture::Impl {
-    Impl(void) : m_texture_id(0), bFilter(true), m_use_mipmaps(false) {
+    Impl(void) : m_texture_id(0), bFilter(true), m_use_mipmaps(false), m_reupload(false) {
         img.w = 8;
         img.h = 8;
         img.pixels = nullptr;
         MakeCheckerboard();
     }
-    Impl(int w, int h) : m_texture_id(0), bFilter(true), m_use_mipmaps(false) {
+    Impl(int w, int h) : m_texture_id(0), bFilter(true), m_use_mipmaps(false), m_reupload(false) {
         assert(w && h);
         img.w = w;
         img.h = h;
@@ -27,7 +21,7 @@ struct Texture::Impl {
     Impl(const char *fname, bool filtered, bool mipmapped) : 
         m_texture_id(0), 
         bFilter(filtered), 
-        m_use_mipmaps(mipmapped) 
+        m_use_mipmaps(mipmapped), m_reupload(false)
     {
         img.w = 8;
         img.h = 8;
@@ -148,7 +142,8 @@ struct Texture::Impl {
 
         int nMipmaps = m_use_mipmaps ? compute_mipmap_level(img.w, img.h) : 1;
         checkGL();
-        glTexStorage2D(GL_TEXTURE_2D, nMipmaps, sizedFormat, img.w, img.h);
+        if (!m_reupload)
+            glTexStorage2D(GL_TEXTURE_2D, nMipmaps, sizedFormat, img.w, img.h);
         checkGL();
         checkGL();
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -166,6 +161,7 @@ struct Texture::Impl {
         checkGL();
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, bFilter ? GL_LINEAR : GL_NEAREST);
         checkGL();
+        m_reupload = true;
     }
     bool Alloc(int w, int h) { return Alloc(3*w*h); }
     bool Alloc(int nbytes) {
@@ -225,6 +221,7 @@ struct Texture::Impl {
     uint32_t sizedFormat, baseFormat;
     bool bFilter;
     bool m_use_mipmaps;
+    bool m_reupload;
 
     Image img;
 };
@@ -239,7 +236,6 @@ GLuint Texture::get_texture_id(void) const { return m_impl->get_texture_id(); }
 const char *Texture::get_name(void) const { return m_impl->get_name(); }
 size_t Texture::get_size_in_bytes(void) const { return m_impl->get_size_in_bytes(); }
 uint8_t *Texture::get_pixels(void) const { return m_impl->get_pixels(); }
-double log2(double x) { return log(x)/log(2); }
 
 // ----------------------------------
 // TextureManager
