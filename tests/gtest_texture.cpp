@@ -49,6 +49,7 @@ TEST_F(texture_fixture, does_blend_work) {
     Backend::write_screenshot(actual);
     ASSERT_TRUE(image_match(expected, actual, TEST_WIDTH, TEST_HEIGHT));
 }
+#if 0
 TEST_F(texture_fixture, default_texture_quad) {
     static const char *actual = "default_texture_quad_actual_result.png";
     static const char *expected = "default_texture_quad_expected_result.png";
@@ -60,3 +61,5 @@ TEST_F(texture_fixture, default_texture_quad) {
     Backend::write_screenshot(actual);
     ASSERT_TRUE(image_match(expected, actual, TEST_WIDTH, TEST_HEIGHT));
 }
+
+#endif
