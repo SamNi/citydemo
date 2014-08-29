@@ -16,10 +16,10 @@ void TriList::Init(const glm::vec3* v, int n) {
     glBindVertexArray(0);
 
     indexed = false;
-    this->nVerts = nVerts;
+    this->nVerts = n;
     this->nIdx = 0;
 }
-void TriList::Init(const glm::vec3 *v, const GLubyte *indices, int nVerts, int nIndices) {
+void TriList::Init(const glm::vec3 *v, const GLubyte *indices, int n, int nIndices) {
     if (IsValid())
         return;
 
@@ -43,7 +43,7 @@ void TriList::Init(const glm::vec3 *v, const GLubyte *indices, int nVerts, int n
 
     glGenBuffers(1, &vbo_points);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_points);
-    glBufferData(GL_ARRAY_BUFFER, 3*nVerts*sizeof(GLfloat), glm::value_ptr(*v), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 3*n*sizeof(GLfloat), glm::value_ptr(*v), GL_STATIC_DRAW);
 
     glGenBuffers(1, &vbo_indices);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_indices);
@@ -55,7 +55,7 @@ void TriList::Init(const glm::vec3 *v, const GLubyte *indices, int nVerts, int n
     idx = indices;
 
     indexed = true;
-    this->nVerts = nVerts;
+    this->nVerts = n;
     this->nIdx = nIndices;
 }
 
