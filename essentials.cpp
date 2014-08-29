@@ -62,6 +62,7 @@ void imgflip(int w, int h, int nComponents, uint8_t *pixels) {
         memcpy(&pixels[i*rowSize], &pixels[(h - i - 1)*rowSize], rowSize);
         memcpy(&pixels[(h - i - 1)*rowSize], tmp, rowSize);
     }
+    delete[] tmp;
 }
 
 void checkGL(void) {
