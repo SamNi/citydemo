@@ -11,15 +11,13 @@
 
 #pragma warning(disable : 4800)
 
-static const int        OFFSCREEN_WIDTH =           512;
-static const int        OFFSCREEN_HEIGHT =          512;
-static const bool       PIXELATED =                 false;
+static const int        OFFSCREEN_WIDTH =           128;
+static const int        OFFSCREEN_HEIGHT =          128;
+static const bool       PIXELATED =                 true;
 
 #include "../Frontend/GUI.h"
 
 using namespace GUI;
-
-static Framebuffer *offscreenFB = nullptr;
 
 static const int NUM_TRIANGLES = 1000;
 SurfaceTriangles st(3*NUM_TRIANGLES, 3*NUM_TRIANGLES);
@@ -80,6 +78,7 @@ struct Backend::Impl {
             LOG(LOG_CRITICAL, "TextureManager::Startup returned false\n");
             return false;
         }
+        offscreen_fb_handle = 0;
 
         return true;
     }
@@ -90,14 +89,14 @@ struct Backend::Impl {
         Lua::shutdown();
     }
 
+    FramebufferManager fbm;
+    uint32_t offscreen_fb_handle;
     void begin_frame(void) {
         clear_performance_counters();
         if (offscreenRender) {
-#if 0
-            if (nullptr == offscreenFB)
-                offscreenFB = new Framebuffer(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
-            offscreenFB->bind();    
-#endif
+            if (0 == offscreen_fb_handle)
+                offscreen_fb_handle = fbm.create(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
+            fbm.bind(offscreen_fb_handle);
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         geom_buf.cmd_queues.Clear();
@@ -163,7 +162,7 @@ struct Backend::Impl {
         }
         if (offscreenRender) {
             set_instanced_mode(false);
-            //offscreenFB->blit(current_screen_width, current_screen_height);
+            fbm.blit(offscreen_fb_handle);
         }
         geom_buf.cmd_queues.Swap();
     }
