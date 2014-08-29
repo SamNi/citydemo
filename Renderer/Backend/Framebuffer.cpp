@@ -64,9 +64,7 @@ struct Framebuffer::Impl {
     uint16_t          width, height;
 };
 
-Framebuffer::Framebuffer(uint16_t w, uint16_t h) {
-    m_impl = std::unique_ptr<Impl>(new Impl(w, h));
-}
+Framebuffer::Framebuffer(uint16_t w, uint16_t h) : m_impl(std::unique_ptr<Impl>(new Impl(w,h))) { }
 Framebuffer::~Framebuffer(void) { m_impl.reset(nullptr); }
 void Framebuffer::bind(void) const { m_impl->bind(); }
 void Framebuffer::blit(void) const { m_impl->blit(); }
@@ -106,20 +104,11 @@ struct FramebufferManager::Impl {
             return;
         }
         it->second->blit();
-#if 0
-        unbind();
-        Backend::bind_texture(it->second->get_texture_id());
-        Backend::set_modelview(glm::mat4(1.0f));
-        Backend::set_projection(glm::mat4(1.0f));
-        Backend::disable_depth_testing();
-        Backend::reset_viewport();
-        Backend::draw_fullscreen_quad();
-#endif
     }
 };
 uint32_t FramebufferManager::Impl::m_fb_counter = 1;
 
-FramebufferManager::FramebufferManager(void) { m_impl = ImplPtr(new Impl()); }
+FramebufferManager::FramebufferManager(void) : m_impl(ImplPtr(new Impl())) { }
 FramebufferManager::~FramebufferManager(void) { m_impl.reset(nullptr); }
 uint32_t FramebufferManager::create(uint16_t w, uint16_t h) { return m_impl->create(w, h); }
 void FramebufferManager::bind(uint32_t handle) { m_impl->bind(handle); }
