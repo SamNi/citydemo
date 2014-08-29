@@ -152,7 +152,7 @@ struct state_machine::Impl {
     bool m_dirty;
 };
 
-state_machine::state_machine(void) { m_impl = ImplPtr(new Impl()); }
+state_machine::state_machine(void) : m_impl(ImplPtr(new Impl())) { }
 state_machine::~state_machine(void) { m_impl.reset(nullptr); }
 void state_machine::add_state(const char *state_name) { m_impl->add_state(state_name); }
 void state_machine::remove_state(const char *state_name) { m_impl->remove_state(state_name); }
