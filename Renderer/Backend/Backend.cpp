@@ -93,9 +93,11 @@ struct Backend::Impl {
     void begin_frame(void) {
         clear_performance_counters();
         if (offscreenRender) {
+#if 0
             if (nullptr == offscreenFB)
                 offscreenFB = new Framebuffer(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
             offscreenFB->bind();    
+#endif
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         geom_buf.cmd_queues.Clear();
@@ -161,7 +163,7 @@ struct Backend::Impl {
         }
         if (offscreenRender) {
             set_instanced_mode(false);
-            offscreenFB->blit(current_screen_width, current_screen_height);
+            //offscreenFB->blit(current_screen_width, current_screen_height);
         }
         geom_buf.cmd_queues.Swap();
     }
@@ -274,6 +276,7 @@ struct Backend::Impl {
 
     PerfCounters m_perf_count;
     const PerfCounters& get_performance_count(void) const { return m_perf_count; }
+    void reset_viewport(void) const { glViewport(0, 0, current_screen_width, current_screen_height); }
 
     Specs mSpecs;
 
@@ -321,3 +324,4 @@ void Backend::disable_blending(void) { mImpl->disable_blending(); }
 void Backend::show_hud(bool b) { mImpl->show_hud(b); }
 uint32_t Backend::load_texture(const char *path) { return mImpl->load_texture(path); }
 const PerfCounters& Backend::get_performance_count(void) { return mImpl->get_performance_count(); }
+void Backend::reset_viewport(void) { mImpl->reset_viewport();  }

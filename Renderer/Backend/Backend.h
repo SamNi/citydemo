@@ -72,6 +72,7 @@ public:
     static uint32_t load_texture(const char *path);
 
     static const PerfCounters& get_performance_count(void);
+    static void reset_viewport(void); // hack for the FramebufferManager 
 
 private:
     struct Impl;

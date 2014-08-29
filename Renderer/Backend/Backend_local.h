@@ -64,29 +64,20 @@ private:
     static ImplPtr m_impl;
 };
 
-// Framebuffer.cpp
-struct Framebuffer {
-    explicit Framebuffer(uint16_t w, uint16_t h);
-    ~Framebuffer(void);
-    void bind(void) const;
-    void blit(int w, int h) const;
-    uint32_t get_texture_id(void) const;
-
-private:
-    struct Impl;
-    std::unique_ptr<Impl> m_impl;
-};
-#if 0
 struct FramebufferManager {
     explicit FramebufferManager(void);
     ~FramebufferManager(void);
-    void bind(void) const;
-    void 
+    uint32_t        create(uint16_t w, uint16_t h);
+    void            bind(uint32_t handle);
+    void            unbind(void);
+    void            blit(uint32_t handle);
+
 private:
     struct Impl;
-    std::unique_ptr<Impl> m_impl;
+    typedef std::unique_ptr<Impl> ImplPtr;
+    ImplPtr m_impl;
 };
-#endif
+
 struct DrawElementsIndirectCommand {
     unsigned int idxCount, instanceCount, firstIndex, baseVertex, baseInstance;
 };
