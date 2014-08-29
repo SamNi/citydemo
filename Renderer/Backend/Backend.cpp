@@ -13,7 +13,7 @@
 
 static const int        OFFSCREEN_WIDTH =           128;
 static const int        OFFSCREEN_HEIGHT =          128;
-static const bool       PIXELATED =                 true;
+static const bool       PIXELATED =                 false;
 
 #include "../Frontend/GUI.h"
 
@@ -276,6 +276,7 @@ struct Backend::Impl {
     PerfCounters m_perf_count;
     const PerfCounters& get_performance_count(void) const { return m_perf_count; }
     void reset_viewport(void) const { glViewport(0, 0, current_screen_width, current_screen_height); }
+    void enable_downscale(void) { offscreenRender = true; }
 
     Specs mSpecs;
 
@@ -324,3 +325,4 @@ void Backend::show_hud(bool b) { mImpl->show_hud(b); }
 uint32_t Backend::load_texture(const char *path) { return mImpl->load_texture(path); }
 const PerfCounters& Backend::get_performance_count(void) { return mImpl->get_performance_count(); }
 void Backend::reset_viewport(void) { mImpl->reset_viewport();  }
+void Backend::enable_downscale(void) { mImpl->enable_downscale(); }

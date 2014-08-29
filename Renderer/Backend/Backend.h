@@ -73,6 +73,7 @@ public:
 
     static const PerfCounters& get_performance_count(void);
     static void reset_viewport(void); // hack for the FramebufferManager 
+    static void enable_downscale(void);
 
 private:
     struct Impl;
