@@ -1,4 +1,3 @@
-#ifdef _TEST_BUILD
 #include "../Renderer/Backend/Backend_local.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -19,8 +18,6 @@ struct texture_fixture : public ::testing::Test {
         Backend::startup(TEST_WIDTH, TEST_HEIGHT);
         Backend::show_hud(false);
         Backend::disable_depth_testing();
-        Backend::set_modelview(glm::mat4(1.0f));
-        Backend::set_projection(glm::mat4(1.0f));
     }
 
     virtual void TearDown(void) {
@@ -28,14 +25,38 @@ struct texture_fixture : public ::testing::Test {
     }
     GLFWwindow *m_window;
 };
-
-TEST_F(texture_fixture, default_texture_quad) {
-    static const char *actual = "default_texture_quad_actual_result.png";
-    static const char *expected = "default_texture_quad_expected_result.png";
-    Texture t(16, 16);
-    glBindVertexArray(QuadVAO::get_vao());
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+TEST_F(texture_fixture, load_texture) {
+    static const char *actual = "load_texture_actual_result.png";
+    static const char *expected = "load_texture_expected_result.png";
+    auto handle = Backend::load_texture("images/RGB1024.png");
+    Backend::begin_frame();
+    Backend::bind_texture(handle);
+    Backend::draw_fullscreen_quad();
+    Backend::end_frame();
     Backend::write_screenshot(actual);
     ASSERT_TRUE(image_match(expected, actual, TEST_WIDTH, TEST_HEIGHT));
 }
-#endif // ~_TEST_BUILD
+TEST_F(texture_fixture, does_blend_work) {
+    static const char *actual = "does_blend_work_actual_result.png";
+    static const char *expected = "does_blend_work_expected_result.png";
+    auto handle = Backend::load_texture("images/RGBA1024.png");
+    Backend::set_clear_color(COLOR[YELLOW]);
+    Backend::begin_frame();
+    Backend::enable_blending();
+    Backend::bind_texture(handle);
+    Backend::draw_fullscreen_quad();
+    Backend::end_frame();
+    Backend::write_screenshot(actual);
+    ASSERT_TRUE(image_match(expected, actual, TEST_WIDTH, TEST_HEIGHT));
+}
+TEST_F(texture_fixture, default_texture_quad) {
+    static const char *actual = "default_texture_quad_actual_result.png";
+    static const char *expected = "default_texture_quad_expected_result.png";
+    Texture t;
+    Backend::begin_frame();
+    t.bind();
+    Backend::draw_fullscreen_quad();
+    Backend::end_frame();
+    Backend::write_screenshot(actual);
+    ASSERT_TRUE(image_match(expected, actual, TEST_WIDTH, TEST_HEIGHT));
+}

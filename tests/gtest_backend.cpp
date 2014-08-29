@@ -79,6 +79,7 @@ TEST_F(backend_fixture, single_front_facing_triangle) {
     st->texture_coordinates[1] = TexCoord(65535, 0);
     st->texture_coordinates[2] = TexCoord(65535, 65535);
     auto handle = Backend::add_surface_triangles(st);
+    Backend::load_texture("images/white.png");
     Backend::begin_frame();
     Backend::draw_surface_triangles(handle);
     Backend::end_frame();

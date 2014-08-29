@@ -2,9 +2,8 @@
 #include <gtest/gtest.h>
 #include "gtest_utils.h"
 
-static const int TEST_WIDTH =       1280;
-static const int TEST_HEIGHT =      720;
-
+static const int TEST_WIDTH =       256;
+static const int TEST_HEIGHT =      256;
 struct gbuffer_fixture : public ::testing::Test {
     virtual void SetUp(void) {
         glfwInit();
@@ -25,12 +24,5 @@ struct gbuffer_fixture : public ::testing::Test {
     GLFWwindow *window;
 };
 
-TEST_F(gbuffer_fixture, asdf) {
-    //GBuffer x(TEST_WIDTH, TEST_HEIGHT);
-    //x.bind();
-    Backend::begin_frame();
-    glBindVertexArray(QuadVAO::get_vao());
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-    Backend::end_frame();
-    Backend::write_screenshot("gbuffer_asdf.png");
+TEST_F(gbuffer_fixture, gbuffer_basic) {
 }

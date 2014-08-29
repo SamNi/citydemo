@@ -40,4 +40,5 @@ TEST_F(shader_fixture, load_nonexistent) {
     auto ret = ShaderManager::load("doesnotexist", "anditneverwill", "stop reading");
     ASSERT_EQ(-1, ret);
 }
+
 #endif  // ~_TEST_BUILD

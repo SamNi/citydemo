@@ -26,10 +26,10 @@ struct framebuffer_fixture : public ::testing::Test {
     }
     GLFWwindow *window;
 };
-
+#if 0
 TEST_F(framebuffer_fixture, asdf) {
     Framebuffer fb(TEST_WIDTH, TEST_HEIGHT);
     fb.bind();
 }
-
+#endif
 #endif  // ~_TEST_BUILD
