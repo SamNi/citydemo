@@ -9,5 +9,4 @@
 #include "Application.h" 
 #include "Renderer/Frontend/Camera.h"
 #include "Input.h"
-#include "Renderer/Frontend/GUI.h"
 #include "LuaBindings.h"

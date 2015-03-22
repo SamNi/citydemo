@@ -61,9 +61,6 @@
     <ClCompile Include="Renderer\Backend\ResourceManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Renderer\Frontend\GUI.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="tests\gtest_backend.cpp">
       <Filter>Unit Tests</Filter>
     </ClCompile>

@@ -325,7 +325,6 @@
     <ClCompile Include="Renderer\Backend\TriList.cpp" />
     <ClCompile Include="Renderer\Frontend\Camera.cpp" />
     <ClCompile Include="Renderer\Frontend\Frontend.cpp" />
-    <ClCompile Include="Renderer\Frontend\GUI.cpp" />
     <ClCompile Include="tests\gtest_backend.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

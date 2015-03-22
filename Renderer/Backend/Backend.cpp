@@ -14,8 +14,6 @@ static const int        OFFSCREEN_WIDTH =           128;
 static const int        OFFSCREEN_HEIGHT =          128;
 static const bool       PIXELATED =                 false;
 
-#include "../Frontend/GUI.h"
-
 static const int NUM_TRIANGLES = 1000;
 SurfaceTriangles st(3*NUM_TRIANGLES, 3*NUM_TRIANGLES);
 
