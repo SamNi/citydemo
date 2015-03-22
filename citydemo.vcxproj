@@ -301,7 +301,6 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="accel\Accel.cpp" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="essentials.cpp" />
     <ClCompile Include="Input.cpp" />
@@ -383,7 +382,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="accel\accel.h" />
     <ClInclude Include="Application.h" />
     <ClInclude Include="citydemo.h" />
     <ClInclude Include="essentials.h" />

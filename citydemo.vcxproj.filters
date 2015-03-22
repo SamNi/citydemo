@@ -97,9 +97,6 @@
     <ClCompile Include="Renderer\Backend\GeometryBuffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="accel\Accel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Renderer\Backend\dataplot.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -149,9 +146,6 @@
     </ClInclude>
     <ClInclude Include="tests\gtest_utils.h">
       <Filter>Unit Tests</Filter>
-    </ClInclude>
-    <ClInclude Include="accel\accel.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
