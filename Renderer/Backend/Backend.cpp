@@ -121,7 +121,7 @@ struct Backend::Impl {
         current_screen_height = h;
     }
 
-    RGBPixel* get_screenshot(void) const {
+    RGBPixel* get_screenshot_from_framebuffer(void) const {
         uint32_t buf_size = current_screen_width*current_screen_height*sizeof(RGBPixel);
         RGBPixel *ret = new RGBPixel[buf_size];
         glReadPixels(0, 0, current_screen_width, current_screen_height, GL_RGB, GL_UNSIGNED_BYTE, ret);
@@ -162,7 +162,7 @@ struct Backend::Impl {
         LOG(LOG_INFORMATION, "Screenshot %dx%d to %s", current_screen_width, current_screen_height, filename);
 
         nBytes = current_screen_width*current_screen_height*3*sizeof(uint8_t);
-        auto buf = get_screenshot();
+        auto buf = get_screenshot_from_framebuffer();
 
         image.width = current_screen_width;
         image.height = current_screen_height;
@@ -315,7 +315,7 @@ void Backend::shutdown(void) {
 void Backend::begin_frame(void) { mImpl->begin_frame(); }
 void Backend::end_frame(void) { mImpl->end_frame(); }
 void Backend::resize(int w, int h) { mImpl->resize(w, h); }
-RGBPixel* Backend::get_screenshot(void) { return mImpl->get_screenshot(); }
+RGBPixel* Backend::get_screenshot_from_framebuffer(void) { return mImpl->get_screenshot_from_framebuffer(); }
 RGBPixel* Backend::get_screenshot_from_file(const char *path) { return mImpl->get_screenshot_from_file(path); }
 void Backend::write_screenshot(void) { mImpl->write_screenshot(); }
 bool Backend::write_screenshot(const char *filename) { return mImpl->write_screenshot(filename); }
