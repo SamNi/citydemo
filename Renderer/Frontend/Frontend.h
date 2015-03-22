@@ -2,6 +2,7 @@
 #define FRONTEND_H_
 #include "../../essentials.h"
 #include "../../GLM.h"
+#include "Camera.h"
 
 class Frontend {
 public:

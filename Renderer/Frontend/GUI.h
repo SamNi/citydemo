@@ -1,3 +1,4 @@
+#if 0
 #ifndef _GUI_H
 #define _GUI_H
 #include "../../essentials.h"
@@ -73,3 +74,5 @@ protected:
 }  // ~namespace GUI
 
 #endif  // ~_GUI_H
+
+#endif

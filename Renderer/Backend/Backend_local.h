@@ -12,6 +12,20 @@ struct VertexAttributePointers {
     GLuint *normalBuf;
 };
 
+// dataplot.cpp
+struct Dataplot {
+    // ctor/dtor
+    explicit Dataplot(void);
+    ~Dataplot(void);
+
+    void foo(void);
+
+private:
+    struct Impl;
+    typedef std::unique_ptr<Impl> ImplPtr;
+    ImplPtr m_impl;
+};
+
 // OpenGLBufferImmutable.cpp
 struct OpenGLBufferImmutable {
     OpenGLBufferImmutable(GLenum target, GLenum flags, uint32_t num_bytes);
@@ -193,5 +207,36 @@ private:
     typedef std::unique_ptr<Impl> ImplPtr;
     ImplPtr m_impl;
 };
+
+struct Resource {
+public:
+private:
+    uint64_t unique_id;
+};
+
+typedef uint32_t resource_handle;
+
+struct ResourceManager { 
+    explicit ResourceManager(void);
+    ~ResourceManager(void);
+
+    bool startup();
+    void shutdown();
+
+    // Framebuffers
+    resource_handle         create_framebuffer(uint16_t w, uint16_t h);
+    void                    bind_framebuffer(resource_handle h);
+    void                    unbind_framebuffer(void);
+    void                    blit_framebuffer(resource_handle h);
+
+    // Textures
+
+    // Shaders
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
+};
+
 
 #endif  // ~_BACKEND_LOCAL_H

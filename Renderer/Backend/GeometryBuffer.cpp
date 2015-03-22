@@ -152,7 +152,7 @@ void GeometryBuffer::open_command_queue(void) {
         return;
     }
 
-    cmdBuf = (DrawElementsIndirectCommand*)glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, cmd_queues.get_base_offset()*sizeof(DrawElementsIndirectCommand), cmd_queues.PARTITION_SIZE*sizeof(DrawElementsIndirectCommand), GL_MAP_WRITE_BIT);
+    cmdBuf = static_cast<DrawElementsIndirectCommand*>(glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, cmd_queues.get_base_offset()*sizeof(DrawElementsIndirectCommand), cmd_queues.PARTITION_SIZE*sizeof(DrawElementsIndirectCommand), GL_MAP_WRITE_BIT));
     if (NULL == cmdBuf)
         LOG(LOG_WARNING, "glMapBuffer(GL_DRAW_INDIRECT_BUFFER,) returned null");
 }
@@ -218,7 +218,7 @@ CommandQueues::CommandQueues(void) {
     current_queue = 0;
     for (int i = 0;i < NUM_PARTITIONS;++i) {
         top[i] = 0;
-        base[i] = i*PARTITION_SIZE;
+        base[i] = (uint16_t)i*PARTITION_SIZE;
     }
 }
 void CommandQueues::Push(void) {

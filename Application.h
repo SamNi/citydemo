@@ -1,5 +1,6 @@
 #ifndef APPLICATION_H_
 #define APPLICATION_H_
+#include "essentials.h"
 
 class Application {
 public:

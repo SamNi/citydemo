@@ -34,9 +34,8 @@ int Application::Run(void) {
     if (!startup())
         return EXIT_FAILURE;
 
-    static double t0, t1, tdelta, remaining;
-    static bool goSlow;
     while (!Done()) {
+        static double t0, t1, tdelta, remaining;
         t0 = glfwGetTime();
 
         Update(target_period);

@@ -1,3 +1,3 @@
-LoadShader("ortho2d", "shaders/ortho2d.frag", "shaders/ortho2d.vert");
-BindShader("ortho2d")
-p = LoadTexture("images/darkgray.png")
+LoadShader("standard", "shaders/standard.frag", "shaders/standard.vert");
+BindShader("standard")
+p = LoadTexture("images/white.png")

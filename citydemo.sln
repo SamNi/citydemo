@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30723.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "citydemo", "citydemo.vcxproj", "{CF2473AD-007A-403A-B107-836A2E59BE41}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{106E6F8D-D7DF-4AE9-BD86-C8C23171077D}"
@@ -8,16 +10,25 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
 		GTest|Win32 = GTest|Win32
+		GTest|x64 = GTest|x64
 		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{CF2473AD-007A-403A-B107-836A2E59BE41}.Debug|Win32.ActiveCfg = Debug|Win32
 		{CF2473AD-007A-403A-B107-836A2E59BE41}.Debug|Win32.Build.0 = Debug|Win32
+		{CF2473AD-007A-403A-B107-836A2E59BE41}.Debug|x64.ActiveCfg = Debug|x64
+		{CF2473AD-007A-403A-B107-836A2E59BE41}.Debug|x64.Build.0 = Debug|x64
 		{CF2473AD-007A-403A-B107-836A2E59BE41}.GTest|Win32.ActiveCfg = GTest|Win32
 		{CF2473AD-007A-403A-B107-836A2E59BE41}.GTest|Win32.Build.0 = GTest|Win32
+		{CF2473AD-007A-403A-B107-836A2E59BE41}.GTest|x64.ActiveCfg = GTest|x64
+		{CF2473AD-007A-403A-B107-836A2E59BE41}.GTest|x64.Build.0 = GTest|x64
 		{CF2473AD-007A-403A-B107-836A2E59BE41}.Release|Win32.ActiveCfg = Release|Win32
 		{CF2473AD-007A-403A-B107-836A2E59BE41}.Release|Win32.Build.0 = Release|Win32
+		{CF2473AD-007A-403A-B107-836A2E59BE41}.Release|x64.ActiveCfg = Release|x64
+		{CF2473AD-007A-403A-B107-836A2E59BE41}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

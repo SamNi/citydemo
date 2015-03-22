@@ -15,8 +15,8 @@ struct Compiled_State_Machine {
     explicit Compiled_State_Machine(const std::list<const char *>& states, 
         const std::list<const char *>& events, 
         const std::list<Transition>& transitions, const char *initial) : m_is_valid(false) {
-        m_num_states = states.size();
-        m_num_events = events.size();
+        m_num_states = (uint16_t)states.size();
+        m_num_events = (uint16_t)events.size();
         auto n = m_num_states*m_num_events;
         m_table = new Entry[n];
         memset(m_table, NO_TRANSITION, n*sizeof(Entry));
@@ -88,6 +88,7 @@ struct state_machine::Impl {
         m_dirty = true;
     }
     void remove_state(const char *state_name) {
+        state_name;
         assert(0);
     }
     void add_event(const char *event_name) {
@@ -95,6 +96,7 @@ struct state_machine::Impl {
         m_dirty = true;
     }
     void remove_event(const char *event_name) {
+        event_name;
         assert(0);
     }
     void add_transition(const char *source, const char *destination, const char *evt) {

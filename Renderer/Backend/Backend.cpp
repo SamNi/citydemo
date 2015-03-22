@@ -7,7 +7,6 @@
 #include "Shader.h"
 #include "../Frontend/Camera.h"
 #include <png.h>            // for writing screenshots
-#include "ResourceManager.h"
 
 #pragma warning(disable : 4800)
 
@@ -17,7 +16,7 @@ static const bool       PIXELATED =                 false;
 
 #include "../Frontend/GUI.h"
 
-using namespace GUI;
+//using namespace GUI;
 
 static const int NUM_TRIANGLES = 1000;
 SurfaceTriangles st(3*NUM_TRIANGLES, 3*NUM_TRIANGLES);
@@ -80,6 +79,8 @@ struct Backend::Impl {
         }
         offscreen_fb_handle = 0;
 
+        m_deferred = false;
+
         return true;
     }
     void shutdown(void) {
@@ -88,9 +89,6 @@ struct Backend::Impl {
         m_resource_manager.shutdown();
         Lua::shutdown();
     }
-
-    FramebufferManager fbm;
-    uint32_t offscreen_fb_handle;
     void begin_frame(void) {
         clear_performance_counters();
         if (offscreenRender) {
@@ -98,59 +96,13 @@ struct Backend::Impl {
                 offscreen_fb_handle = fbm.create(OFFSCREEN_WIDTH, OFFSCREEN_HEIGHT);
             fbm.bind(offscreen_fb_handle);
         }
+
+        if (m_deferred) {
+
+        }
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         geom_buf.cmd_queues.Clear();
-    }
-
-    uint32_t loc;
-
-    void add_random_tris(void) {
-        static bool firstTime = true;
-        if (false == firstTime)
-            return;
-        firstTime = false;
-        GLuint i;
-        for (i = 0;i < 3*NUM_TRIANGLES;i += 3) {
-            glm::vec3 v0(uniform(-1.5f, 1.5f), uniform(-1.5f, 1.5f), uniform(-1.5f, 1.5f));
-            glm::vec3 v1(v0 + glm::vec3(uniform(-0.25f, 0.25f), uniform(-0.25f, 0.25f), uniform(-0.25f, 0.25f)));
-            glm::vec3 v2(v0 + glm::vec3(uniform(-0.25f, 0.25f), uniform(-0.25f, 0.25f), uniform(-0.25f, 0.25f)));
-            st.vertices[i+0] = v0;
-            st.vertices[i+1] = v1;
-            st.vertices[i+2] = v2;
-            st.texture_coordinates[i+0] = TexCoord(0, 0);
-            st.texture_coordinates[i+1] = TexCoord(65535, 0);
-            st.texture_coordinates[i+2] = TexCoord(0, 65535);
-            st.normals[i+0] = normal_pack(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-            st.normals[i+1] = normal_pack(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-            st.normals[i+2] = normal_pack(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-            st.indices[i+0] = i+0;
-            st.indices[i+1] = i+1;
-            st.indices[i+2] = i+2;
-        }
-        mImpl->geom_buf.open_geometry_buffer();
-        loc = mImpl->geom_buf.add_surface(st);
-        mImpl->geom_buf.close_geometry_buffer();
-
-    }
-    void draw_fullscreen_quad(void) {
-        QuadVAO::draw();
-    }
-    uint32_t add_surface_triangles(std::shared_ptr<SurfaceTriangles> st) {
-        geom_buf.open_geometry_buffer();
-        auto ret = geom_buf.add_surface(*st);
-        geom_buf.close_geometry_buffer();
-        m_surface_triangles.emplace(ret, st);
-        return ret;
-    }
-    void draw_surface_triangles(uint32_t handle) {
-        auto it = m_surface_triangles.find(handle);
-        if (it == m_surface_triangles.end()) {
-            LOG(LOG_WARNING, "draw_surface_triangles called on missing handle %u", handle);
-            return;
-        }
-        geom_buf.open_command_queue();
-        geom_buf.add_draw_command(it->first, it->second->nIndices);
-        geom_buf.close_command_queue();
     }
     void end_frame(void) {
         set_instanced_mode(false);
@@ -166,11 +118,13 @@ struct Backend::Impl {
         }
         geom_buf.cmd_queues.Swap();
     }
+
     void resize(int w, int h) {
         glViewport(0, 0, w, h);
         current_screen_width = w;
         current_screen_height = h;
     }
+
     RGBPixel* get_screenshot(void) const {
         uint32_t buf_size = current_screen_width*current_screen_height*sizeof(RGBPixel);
         RGBPixel *ret = new RGBPixel[buf_size];
@@ -227,11 +181,73 @@ struct Backend::Impl {
         delete[] buf;
         return true;
     }
+    FramebufferManager fbm;
+    uint32_t offscreen_fb_handle;
+    uint32_t loc;
+
+    void add_random_tris(void) {
+        static bool firstTime = true;
+        if (false == firstTime)
+            return;
+        firstTime = false;
+        GLuint i;
+        for (i = 0;i < 3*NUM_TRIANGLES;i += 3) {
+            glm::vec3 v0(uniform(-1.5f, 1.5f), uniform(-1.5f, 1.5f), uniform(-1.5f, 1.5f));
+            glm::vec3 v1(v0 + glm::vec3(uniform(-0.25f, 0.25f), uniform(-0.25f, 0.25f), uniform(-0.25f, 0.25f)));
+            glm::vec3 v2(v0 + glm::vec3(uniform(-0.25f, 0.25f), uniform(-0.25f, 0.25f), uniform(-0.25f, 0.25f)));
+            st.vertices[i+0] = v0;
+            st.vertices[i+1] = v1;
+            st.vertices[i+2] = v2;
+            st.texture_coordinates[i+0] = TexCoord(0, 0);
+            st.texture_coordinates[i+1] = TexCoord(65535, 0);
+            st.texture_coordinates[i+2] = TexCoord(0, 65535);
+            st.normals[i+0] = normal_pack(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+            st.normals[i+1] = normal_pack(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+            st.normals[i+2] = normal_pack(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+            st.indices[i+0] = i+0;
+            st.indices[i+1] = i+1;
+            st.indices[i+2] = i+2;
+        }
+        mImpl->geom_buf.open_geometry_buffer();
+        loc = mImpl->geom_buf.add_surface(st);
+        mImpl->geom_buf.close_geometry_buffer();
+
+    }
+    void draw_fullscreen_quad(void) {
+        QuadVAO::draw();
+    }
+    uint32_t add_surface_triangles(std::shared_ptr<SurfaceTriangles> st) {
+        geom_buf.open_geometry_buffer();
+        auto ret = geom_buf.add_surface(*st);
+        geom_buf.close_geometry_buffer();
+        m_surface_triangles.emplace(ret, st);
+        return ret;
+    }
+    void draw_surface_triangles(uint32_t handle) {
+        auto it = m_surface_triangles.find(handle);
+        if (it == m_surface_triangles.end()) {
+            LOG(LOG_WARNING, "draw_surface_triangles called on missing handle %u", handle);
+            return;
+        }
+        geom_buf.open_command_queue();
+        geom_buf.add_draw_command(it->first, it->second->nIndices);
+        geom_buf.close_command_queue();
+    }
+    void set_modelview(const glm::mat4x4& m) {
+        GLint program_handle;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &program_handle);
+        glUniformMatrix4fv(glGetUniformLocation(program_handle, "modelView"), 1, GL_FALSE, glm::value_ptr(m));
+    }
+    void set_projection(const glm::mat4x4& m) {
+        GLint program_handle;
+        glGetIntegerv(GL_CURRENT_PROGRAM, &program_handle);
+        glUniformMatrix4fv(glGetUniformLocation(program_handle, "projection"), 1, GL_FALSE, glm::value_ptr(m));
+    }
 
     void disable_blending(void) { glDisable(GL_BLEND); }
     void show_hud(bool b) { m_draw_hud = b; }
     uint32_t load_texture(const char *path) { return TextureManager::load(path); }
-
+    ResourceManager& get_resource_manager(void) { return m_resource_manager; }
     void enable_additive_blending(void) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
@@ -247,16 +263,6 @@ struct Backend::Impl {
     void enable_depth_testing(void) { glEnable(GL_DEPTH_TEST); }
     void disable_depth_testing(void) { glDisable(GL_DEPTH_TEST); }
 
-    void set_modelview(const glm::mat4x4& m) {
-        GLint program_handle;
-        glGetIntegerv(GL_CURRENT_PROGRAM, &program_handle);
-        glUniformMatrix4fv(glGetUniformLocation(program_handle, "modelView"), 1, GL_FALSE, glm::value_ptr(m));
-    }
-    void set_projection(const glm::mat4x4& m) {
-        GLint program_handle;
-        glGetIntegerv(GL_CURRENT_PROGRAM, &program_handle);
-        glUniformMatrix4fv(glGetUniformLocation(program_handle, "projection"), 1, GL_FALSE, glm::value_ptr(m));
-    }
     void set_instanced_mode(bool b) {
         GLint program_handle;
         glGetIntegerv(GL_CURRENT_PROGRAM, &program_handle);
@@ -277,6 +283,16 @@ struct Backend::Impl {
     const PerfCounters& get_performance_count(void) const { return m_perf_count; }
     void reset_viewport(void) const { glViewport(0, 0, current_screen_width, current_screen_height); }
     void enable_downscale(void) { offscreenRender = true; }
+    void enable_deferred(void) {
+        m_deferred = true;
+    }
+    void disable_deferred(void) {
+        m_deferred = false;
+    }
+    void write_gbuffer(void) {
+
+    }
+    bool m_deferred;
 
     Specs mSpecs;
 
@@ -323,6 +339,10 @@ void Backend::enable_additive_blending(void) { mImpl->enable_additive_blending()
 void Backend::disable_blending(void) { mImpl->disable_blending(); }
 void Backend::show_hud(bool b) { mImpl->show_hud(b); }
 uint32_t Backend::load_texture(const char *path) { return mImpl->load_texture(path); }
+ResourceManager& Backend::get_resource_manager(void) { return mImpl->get_resource_manager();  }
 const PerfCounters& Backend::get_performance_count(void) { return mImpl->get_performance_count(); }
 void Backend::reset_viewport(void) { mImpl->reset_viewport();  }
 void Backend::enable_downscale(void) { mImpl->enable_downscale(); }
+void Backend::enable_deferred(void) { mImpl->enable_deferred(); }
+void Backend::disable_deferred(void) { mImpl->disable_deferred(); }
+void Backend::write_gbuffer(void) { mImpl->write_gbuffer(); }

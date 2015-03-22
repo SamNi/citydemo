@@ -21,9 +21,13 @@ uniform mat4x4 projection;
 void main() {
     texOut = texCoord;
     colorOut = color;
-	normalOut = normal;
-    if (gui_quad_instanced)
+
+    if (gui_quad_instanced) {
+        normalOut = vec3(0.0f, 0.0f, 1.0f);
         gl_Position = the_mvp[gl_InstanceID]*vec4(position,1.0f);
-    else
+    }
+    else {
+    	normalOut = (modelView*vec4(normal, 0.0f)).xyz;
         gl_Position = projection*modelView*vec4(position,1.0f);
+    }
 }

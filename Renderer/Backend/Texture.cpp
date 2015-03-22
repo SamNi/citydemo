@@ -147,7 +147,7 @@ struct Texture::Impl {
     const char *get_name(void) const { return path.c_str(); } 
     size_t get_size_in_bytes(void) const { return (img.pixels) ? img.w*img.h*nComponents + sizeof(Texture) : 0; }
     uint8_t *get_pixels(void) const { return img.pixels; }
-    inline int compute_mipmap_level(int w, int h) { return static_cast<int>(ceil(glm::log2<float>(glm::max(w, h)))); }
+    inline int compute_mipmap_level(int w, int h) { return static_cast<int>(ceil(glm::log2<float>(glm::max((int)w, (int)h)))); }
     void upload_to_gl(void) {
         // Reinterprets RG to grayscale alpha as intended for those that need it
 
@@ -261,9 +261,9 @@ struct Texture::Impl {
     Image img;
 };
 
-Texture::Texture(void) { m_impl = std::unique_ptr<Impl>(new Impl()); }
-Texture::Texture(int w, int h) { m_impl = std::unique_ptr<Impl>(new Impl(w, h)); }
-Texture::Texture(const char *fname, bool filtered, bool mipmapped) { m_impl = std::unique_ptr<Impl>(new Impl(fname, filtered, mipmapped)); }
+Texture::Texture(void) : m_impl(std::unique_ptr<Impl>(new Impl())) { }
+Texture::Texture(int w, int h) : m_impl(std::unique_ptr<Impl>(new Impl(w, h))) { }
+Texture::Texture(const char *fname, bool filtered, bool mipmapped) : m_impl(std::unique_ptr<Impl>(new Impl(fname, filtered, mipmapped))) { }
 Texture::~Texture(void) { m_impl.reset(nullptr); }
 void Texture::bind(void) const { m_impl->bind(); }
 void Texture::refresh(void) { m_impl->refresh(); }
@@ -288,7 +288,6 @@ struct TextureManager::Impl {
     }
     void bind(uint32_t texture_id) {
         auto it = textures.find(texture_id);
-        it = textures.find(texture_id);
         if (it == textures.end()) {
             LOG(LOG_WARNING, "nonexistent texture bound with id %ud\n", texture_id);
             return;

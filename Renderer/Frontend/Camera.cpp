@@ -1,4 +1,4 @@
-#include "Camera.h"
+#include "Frontend.h"
 
 static const glm::vec3 CAMERA_I_AXIS(1.0, 0.0, 0.0);
 static const glm::vec3 CAMERA_J_AXIS(0.0, 1.0, 0.0);

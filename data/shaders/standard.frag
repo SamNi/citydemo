@@ -4,19 +4,17 @@
 in vec2 texOut;
 in vec3 normalOut;
 in vec4 colorOut;
+
 out vec4 FragColor;
 
 uniform sampler2D texMap;
 uniform float seed;
 
 void main() {
-/*
-	float kDiffuse = dot(normalize(normalOut), normalize(vec3(0.0f, 0.0f, -1.0f)));
+    vec4 vertColor = colorOut;
+    vec4 texel = texture(texMap, texOut);
 
-	if (kDiffuse > 0)
-		FragColor = vec4((kDiffuse*colorOut*texture(texMap, texOut)).rgb, 1.0f);
-	else
-		FragColor = vec4(0,0,0,1.0f);
-        */
-    FragColor = colorOut*texture(texMap, texOut);
+    //float N_dot_L = dot( normalize(normalOut), normalize(vec3(0.0f, 0.0f, 1.0f)));
+    //float kIntensity = max(0.0f, N_dot_L);
+    FragColor = texel*vertColor;
 }

@@ -4,8 +4,8 @@
 #include <gtest/gtest.h>
 #include "gtest_utils.h"
 
-static const int TEST_WIDTH = 1600;
-static const int TEST_HEIGHT = 900;
+static const int TEST_WIDTH = 160;
+static const int TEST_HEIGHT = 90;
 
 struct framebuffer_fixture : public ::testing::Test {
     virtual void SetUp(void) {
@@ -26,6 +26,14 @@ struct framebuffer_fixture : public ::testing::Test {
     }
     GLFWwindow *window;
 };
+
+static int x = 2;
+TEST(asdf, asdf) {
+    x = 3;
+}
+TEST(asdf, asdf2) {
+    ASSERT_EQ(3, x);
+}
 
 TEST_F(framebuffer_fixture, crude_downscale) {
     static const auto actual = "crude_downscale_actual.png";

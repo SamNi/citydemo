@@ -27,10 +27,10 @@ typedef uint32_t PackedNormal;
 struct Framebuffer;
 struct Image;
 struct PerfCounters;
-struct Resource;
 struct SurfaceTriangles;
 struct Texture;
 struct TextureManager;
+struct ResourceManager;
 
 // enums
 enum ImageFormat;
@@ -39,11 +39,13 @@ enum ImageFormat;
 class Backend {
 public:
     static bool     startup(int w, int h);
-    static void     begin_frame(void);
-    static void     end_frame(void);
     static void     shutdown(void);
 
+    static void     begin_frame(void);
+    static void     end_frame(void);
+
     static void     resize(int w, int h);
+
     static RGBPixel*     get_screenshot(void);
     static RGBPixel*     read_screenshot(const char *path);
     static void     write_screenshot(void);
@@ -71,9 +73,15 @@ public:
     // Resource management
     static uint32_t load_texture(const char *path);
 
+    static ResourceManager& get_resource_manager(void);
+
     static const PerfCounters& get_performance_count(void);
     static void reset_viewport(void); // hack for the FramebufferManager 
     static void enable_downscale(void);
+
+    static void enable_deferred();
+    static void disable_deferred();
+    static void write_gbuffer();
 
 private:
     struct Impl;
@@ -93,6 +101,10 @@ struct SurfaceTriangles {
 
     uint32_t nIndices;
     uint32_t *indices;
+
+private:
+    // not copyable
+    SurfaceTriangles(const SurfaceTriangles& rhs);
 };
 
 // Per-frame performance stats

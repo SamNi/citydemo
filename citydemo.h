@@ -6,7 +6,6 @@
 #include "ParticleSystem.h"
 #include "Renderer/Backend/Backend.h"
 #include "Renderer/Frontend/Frontend.h"
-#include "Renderer/Backend/ResourceManager.h"
 #include "Application.h" 
 #include "Renderer/Frontend/Camera.h"
 #include "Input.h"

@@ -25,4 +25,10 @@ struct gbuffer_fixture : public ::testing::Test {
 };
 
 TEST_F(gbuffer_fixture, gbuffer_basic) {
+    Backend::set_clear_color(COLOR[DARK_RED]);
+    Backend::enable_deferred();
+    Backend::begin_frame();
+    Backend::end_frame();
+    Backend::write_screenshot("gbuffer_basic.png");
+    Backend::write_gbuffer();
 }

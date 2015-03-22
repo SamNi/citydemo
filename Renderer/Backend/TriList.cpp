@@ -1,6 +1,6 @@
 #include "Backend_local.h"
 
-TriList::TriList(void) : vao(0), vbo_points(0), vbo_indices(0) { }
+TriList::TriList(void) : vao(0), vbo_points(0), vbo_indices(0), idx(nullptr), nVerts(0), nIdx(0), indexed(false) { }
 void TriList::Init(const glm::vec3* v, int n) {
     if (IsValid())
         return;
@@ -30,7 +30,7 @@ void TriList::Init(const glm::vec3 *v, const GLubyte *indices, int n, int nIndic
         NULL,
         GL_DYNAMIC_DRAW);
     DrawElementsIndirectCommand *cmd;
-    cmd = (DrawElementsIndirectCommand *)glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, 1*sizeof(DrawElementsIndirectCommand), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    cmd = static_cast<DrawElementsIndirectCommand *>(glMapBufferRange(GL_DRAW_INDIRECT_BUFFER, 0, 1 * sizeof(DrawElementsIndirectCommand), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
     cmd[0].firstIndex = 0;                  // start from where
     cmd[0].idxCount = nIndices;             // number of indices
     cmd[0].baseInstance = 0;                // number of the first copy
