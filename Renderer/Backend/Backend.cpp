@@ -16,8 +16,6 @@ static const bool       PIXELATED =                 false;
 
 #include "../Frontend/GUI.h"
 
-//using namespace GUI;
-
 static const int NUM_TRIANGLES = 1000;
 SurfaceTriangles st(3*NUM_TRIANGLES, 3*NUM_TRIANGLES);
 
