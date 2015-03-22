@@ -128,7 +128,7 @@ struct Backend::Impl {
         imgflip(current_screen_width, current_screen_height, 3, (uint8_t*)ret);
         return ret;
     }
-    RGBPixel* read_screenshot(const char *fname) const {
+    RGBPixel* get_screenshot_from_file(const char *fname) const {
 	    png_image image;
         uint8_t* ret = nullptr;
 
@@ -316,7 +316,7 @@ void Backend::begin_frame(void) { mImpl->begin_frame(); }
 void Backend::end_frame(void) { mImpl->end_frame(); }
 void Backend::resize(int w, int h) { mImpl->resize(w, h); }
 RGBPixel* Backend::get_screenshot(void) { return mImpl->get_screenshot(); }
-RGBPixel* Backend::read_screenshot(const char *path) { return mImpl->read_screenshot(path); }
+RGBPixel* Backend::get_screenshot_from_file(const char *path) { return mImpl->get_screenshot_from_file(path); }
 void Backend::write_screenshot(void) { mImpl->write_screenshot(); }
 bool Backend::write_screenshot(const char *filename) { return mImpl->write_screenshot(filename); }
 void Backend::add_random_tris(void) { mImpl->add_random_tris(); }

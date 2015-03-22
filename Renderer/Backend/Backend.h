@@ -47,7 +47,7 @@ public:
     static void     resize(int w, int h);
 
     static RGBPixel*     get_screenshot(void);
-    static RGBPixel*     read_screenshot(const char *path);
+    static RGBPixel*     get_screenshot_from_file(const char *path);
     static void     write_screenshot(void);
     static bool     write_screenshot(const char *fname);
     static void     add_random_tris(void);

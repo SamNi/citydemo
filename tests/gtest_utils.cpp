@@ -46,8 +46,8 @@ bool image_match(RGBPixel* lhs, RGBPixel* rhs, uint16_t w, uint16_t h) {
 }
 
 bool image_match(const char* lhs, const char* rhs, uint16_t w, uint16_t h) {
-    auto l = Backend::read_screenshot(lhs);
-    auto r = Backend::read_screenshot(rhs);
+    auto l = Backend::get_screenshot_from_file(lhs);
+    auto r = Backend::get_screenshot_from_file(rhs);
     bool ret = image_match(l, r, w, h);
     delete[] l;
     delete[] r;
