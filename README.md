@@ -13,3 +13,7 @@ Goals:<br>
     G-Buffer<br>
     Any sort of interesting simulation framework (ADEVS perhaps?)<br>
     1920x1080x60 fps on my machine<br>
+
+Ambitious, pie-in-the-sky goals. Looking toward the future:<br>
+    Vulkan support
+    4K (3840x2160) on whatever expensive hardware I can afford in the future
