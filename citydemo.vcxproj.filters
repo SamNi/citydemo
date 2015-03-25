@@ -76,9 +76,6 @@
     <ClCompile Include="Renderer\Frontend\Frontend.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Renderer\Backend\GBuffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="tests\gtest_texture.cpp">
       <Filter>Unit Tests</Filter>
     </ClCompile>
@@ -95,9 +92,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Renderer\Backend\GeometryBuffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer\Backend\dataplot.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tests\gtest_dataplot.cpp">

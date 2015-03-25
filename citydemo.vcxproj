@@ -311,9 +311,7 @@
     </ClCompile>
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Renderer\Backend\Backend.cpp" />
-    <ClCompile Include="Renderer\Backend\dataplot.cpp" />
     <ClCompile Include="Renderer\Backend\Framebuffer.cpp" />
-    <ClCompile Include="Renderer\Backend\GBuffer.cpp" />
     <ClCompile Include="Renderer\Backend\GeometryBuffer.cpp" />
     <ClCompile Include="Renderer\Backend\OpenGLBufferImmutable.cpp" />
     <ClCompile Include="Renderer\Backend\QuadVAO.cpp" />
